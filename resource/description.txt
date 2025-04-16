@@ -1,0 +1,6 @@
+鸟类、昆虫、清晨、微风、树叶$$$C:\\Users\\PXQ\\Desktop\\mcpreaper\\resource\\a.wav
+沙漠、午夜、沙粒、蟋蟀、驼铃$$$C:\\Users\\PXQ\\Desktop\\mcpreaper\\resource\\b.wav
+山间、溪流、鸟鸣、水声、石头$$$C:\\Users\\PXQ\\Desktop\\mcpreaper\\resource\\c.wav
+海浪、海鸥、沙滩、阳光、岩石$$$C:\\Users\\PXQ\\Desktop\\mcpreaper\\resource\\d.wav
+雷声、狂风、大雨、夜晚、雨滴$$$C:\\Users\\PXQ\\Desktop\\mcpreaper\\resource\\e.wav
+雪落、树枝、冬季、动物窸窣、犬吠$$$C:\\Users\\PXQ\\Desktop\\mcpreaper\\resource\\f.wav
