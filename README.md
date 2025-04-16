@@ -50,3 +50,4 @@ testpy: 开发过程中的一些实验代码，Jupyter Notebook中是Reapy的测
 
 ## 运行示例
 ![运行示例](/article/full_processing.png)
+![导入效果](/article/after_import.png)
