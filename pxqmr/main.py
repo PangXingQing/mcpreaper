@@ -13,8 +13,6 @@ RES_DES_PATH = "C:\\Users\\PXQ\\Desktop\\mcpreaper\\WAV\\description.txt"
 def helper_reaper_get_current_project() -> tuple[bool, str]:
     global project
     if project is None:
-        return [False, "REAPER工程未打开或未初始化。"]
-    if project is None:
         try:
             import reapy
             project = reapy.Project()
@@ -111,7 +109,47 @@ def reaper_select_track(track_name = "") -> str:
     return f"成功选择音轨{track_name}。"
 
 @mcp.tool()
-def reaper_insert_audio_into_track_at(track_name = "", file_path_obsolute = "", insert_at_time_position = 0.0) -> str:
+def reaper_get_all_tracksName() -> []:
+    """
+    _summary_ 使用前需要确认已经在REAPER中创建并保存项目，同时打开了Reapy Server。\r\n
+    获取当前Reaper项目中所有音轨的名称，并返回一个列表。\r\n
+    Args:
+        None
+
+    Returns:
+        []: _description_ 音轨名称列表
+    """
+    success, message = helper_reaper_get_current_project()
+    if not success:
+        return message
+    track_names = [track.name for track in project.tracks]
+    return track_names
+    
+@mcp.tool()
+def reaper_get_all_itemTakeName_by_trackName(track_name = "") -> []:
+    """
+    _summary_ 使用前需要确认已经在REAPER中创建并保存项目，同时打开了Reapy Server。\r\n
+    获取当前Reaper项目中所有音轨中场（Take）的名称，并返回一个列表。\r\n
+    Args:
+        track_name (str, optional): _description_. Track的名称
+
+    Returns:
+        []: _description_ 音轨中场（Take）的名称列表
+    """
+    success, message = helper_reaper_get_current_project()
+    if not success:
+        return message
+    track = project._get_track_by_name(track_name)
+    if track is None:
+        return f"没有找到音轨{track_name}。"
+    item_names = []
+    for item in track.items:
+        for take in item.takes:
+            item_names.append(take.name)
+    return item_names
+
+@mcp.tool()
+def reaper_insert_audio_into_track_at(track_name = "", file_path_obsolute = "", insert_at_time_position: float = 0.0) -> str:
     """
     _summary_ 使用前需要确认已经在REAPER中创建并保存项目，同时打开了Reapy Server。\r\n
     在Reaper中选择一个Track，并将音频文件导入到指定时间点。
@@ -133,10 +171,16 @@ def reaper_insert_audio_into_track_at(track_name = "", file_path_obsolute = "", 
     if not os.path.exists(file_path_obsolute):
         return f"音频文件{file_path_obsolute}不存在，请检查路径是否正确。"
     
+    try:
+        insert_at_time_position = float(insert_at_time_position)  # Ensure the time position is a float
+    except ValueError:
+        return f"时间位置参数无效：{insert_at_time_position}，请提供一个有效的数字。"
+    
     import reapy
     from reapy import reascript_api as reaper
     reaper.InsertMedia(file_path_obsolute, 0)
-    
+    item = track.items[-1]
+    item.position = insert_at_time_position
     reaper.UpdateArrange()
     return f"成功创建音轨{track_name}，并导入音频文件{file_path_obsolute}到{insert_at_time_position}秒处。"
 
