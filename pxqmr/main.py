@@ -21,6 +21,29 @@ def helper_reaper_get_current_project() -> tuple[bool, str]:
             return (False, "无法打开REAPER工程，请检查REAPER是否打开，以及是否开启了reapy server。")
     return (True, f"当前Reaper项目名称为：{project.name}，路径为：{project.path}。")
 
+def helper_reaper_get_takeinfo_by_trackname_or_time(track_name = "", take_name = "", time_position: float = 0.0) -> []:
+    takes_info = []
+    success, message = helper_reaper_get_current_project()
+    if not success:
+        return takes_info
+    track = project._get_track_by_name(track_name)
+    if track is None:
+        return takes_info
+    
+    try:
+        time_position = float(time_position)  # Ensure the time position is a float
+    except ValueError:
+        return takes_info
+    
+    import reapy
+    from reapy import reascript_api as reaper
+    takes_info = []
+    for item in track.items:
+            for take in item.takes:
+                if item.position == time_position or take.name == take_name:
+                    takes_info.append(take)
+    return takes_info
+
 @mcp.tool()
 def mcp_server_init_get_audio_description() -> dict[str, str] | None:
     """
@@ -124,17 +147,18 @@ def reaper_get_all_tracksName() -> []:
         return message
     track_names = [track.name for track in project.tracks]
     return track_names
-    
+   
+
 @mcp.tool()
-def reaper_get_all_itemTakeName_by_trackName(track_name = "") -> []:
+def reaper_get_all_takeinfo_by_trakename(track_name = "") -> str:
     """
     _summary_ 使用前需要确认已经在REAPER中创建并保存项目，同时打开了Reapy Server。\r\n
-    获取当前Reaper项目中所有音轨中场（Take）的名称，并返回一个列表。\r\n
+    获取当前Reaper项目中某个轨道（Track）中所有场（Take）的信息。\r\n
     Args:
-        track_name (str, optional): _description_. Track的名称
+        track_name (str, optional): _description_. Track轨道的名称
 
     Returns:
-        []: _description_ 音轨中场（Take）的名称列表
+        str: _description_ 场（Take）信息
     """
     success, message = helper_reaper_get_current_project()
     if not success:
@@ -142,11 +166,22 @@ def reaper_get_all_itemTakeName_by_trackName(track_name = "") -> []:
     track = project._get_track_by_name(track_name)
     if track is None:
         return f"没有找到音轨{track_name}。"
-    item_names = []
-    for item in track.items:
-        for take in item.takes:
-            item_names.append(take.name)
-    return item_names
+    
+    takes = helper_reaper_get_takeinfo_by_trackname_or_time(track_name=track_name)
+    if takes.count() == 0:
+        return f"音轨{track_name}没有找到任何场（Take）。"
+    else:
+        take_info = []
+        for take in takes:
+            take_info.append({
+                'name': take.name,
+                'position': take.position,
+                'length': take.length,
+                'volume': take.volume,
+                'pan': take.pan,
+                'mute': take.mute
+            })
+        return take_info
 
 @mcp.tool()
 def reaper_insert_audio_into_track_at(track_name = "", file_path_obsolute = "", insert_at_time_position: float = 0.0) -> str:
