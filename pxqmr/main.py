@@ -18,7 +18,7 @@ def helper_reaper_get_current_project() -> tuple[bool, str]:
             project = reapy.Project()
             return (True, f"当前Reaper项目名称为：{project.name}，路径为：{project.path}。")
         except Exception as e:
-            return (False, "无法打开REAPER工程，请检查REAPER是否打开，以及是否开启了reapy server。")
+            return (False, f"无法打开REAPER工程，请检查REAPER是否打开，以及是否开启了reapy server。\r\n错误信息：{e}")
     return (True, f"当前Reaper项目名称为：{project.name}，路径为：{project.path}。")
 
 def helper_reaper_get_takeinfo_by_trackname_or_time(track_name = "", take_name = "", time_position: float = 0.0) -> []:
