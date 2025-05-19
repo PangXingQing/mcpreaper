@@ -1,5 +1,7 @@
 import os
 from typing import Any
+
+import reapy.reascripts
 from mcp.server.fastmcp import FastMCP
 
 # 初始化 FastMCP server
@@ -18,7 +20,7 @@ def helper_reaper_get_current_project() -> tuple[bool, str]:
             project = reapy.Project()
             return (True, f"当前Reaper项目名称为：{project.name}，路径为：{project.path}。")
         except Exception as e:
-            return (False, f"无法打开REAPER工程，请检查REAPER是否打开，以及是否开启了reapy server。\r\n错误信息：{e}")
+            return (False, f"无法打开REAPER工程，请检查REAPER是否打开，以及是否开启了reapy server。\r\n详细错误：{e}")
     return (True, f"当前Reaper项目名称为：{project.name}，路径为：{project.path}。")
 
 def helper_reaper_get_takeinfo_by_trackname_or_time(track_name = "", take_name = "", time_position: float = 0.0) -> []:
@@ -74,7 +76,7 @@ def mcp_server_init_get_audio_description() -> dict[str, str] | None:
                                 'file_path': os.path.join(wav_dir, parts[1])
                             })
         except Exception as e:
-            return f"无法读取音频描述文件，请检查文件路径和格式。当前路径为：{RES_DES_PATH}"
+            return f"无法读取音频描述文件，请检查文件路径和格式。当前路径为：{RES_DES_PATH}\r\n详细错误：{e}"
         return file_info_list
 
 @mcp.tool()
@@ -167,16 +169,20 @@ def reaper_get_all_takeinfo_by_trakename(track_name = "") -> str:
     if track is None:
         return f"没有找到音轨{track_name}。"
     
+    import reapy
     takes = helper_reaper_get_takeinfo_by_trackname_or_time(track_name=track_name)
     if takes.count() == 0:
         return f"音轨{track_name}没有找到任何场（Take）。"
     else:
+        t = reapy.Take()
+        
         take_info = []
         for take in takes:
+            
             take_info.append({
                 'name': take.name,
-                'position': take.position,
-                'length': take.length,
+                'position': take.item.position,
+                'length': take.item.length,
                 'volume': take.volume,
                 'pan': take.pan,
                 'mute': take.mute
@@ -219,6 +225,71 @@ def reaper_insert_audio_into_track_at(track_name = "", file_path_obsolute = "", 
     reaper.UpdateArrange()
     return f"成功创建音轨{track_name}，并导入音频文件{file_path_obsolute}到{insert_at_time_position}秒处。"
 
+@mcp.tool()
+def reaper_set_mediaTrack_vol(track_name = "", volume: float = 0.0) -> str:
+    """
+    _summary_ 使用前需要确认已经在REAPER中创建并保存项目，同时打开了Reapy Server。\r\n
+    设置音轨的音量，首先应当选择对应音轨，随后进行响度设定，0=-inf, 0.5=-6dB, 1=+0dB, 2=+6dB, 4=+12dB, 取值范围为[0, 4]。
+    Args:
+        track_name (str, optional): _description_. track的名称
+        volume (float, optional): _description_. 0=-inf, 0.5=-6dB, 1=+0dB, 2=+6dB, 4=+12dB, 取值范围为[0, 4]。
+
+    Returns:
+        str: _description_ 结果
+    """
+    success, message = helper_reaper_get_current_project()
+    if not success:
+        return message
+    track = project._get_track_by_name(track_name)
+    if track is None:
+        return f"没有找到音轨{track_name}。"
+
+    if volume < 0 or volume > 4:
+        return f"音量参数无效：{volume}， 0=-inf, 0.5=-6dB, 1=+0dB, 2=+6dB, 4=+12dB, 取值范围为[0, 4]。"
+    
+    import reapy
+    from reapy import reascript_api as reaper
+    track.make_only_selected_track()
+    track.set_info_value("D_VOL", volume)
+    reaper.UpdateArrange()
+    return f"成功设置音轨{track_name}的音量为{volume}。"
+
+@mcp.tool()
+def reaper_set_mediaTrack_vol_bydB(track_name = "", volume: float = 0.0) -> str:
+    """
+    _summary_ 使用前需要确认已经在REAPER中创建并保存项目，同时打开了Reapy Server。\r\n
+    设置音轨的音量，首先应当选择对应音轨，随后进行响度设定，取值范围为[-100, +12]dB，小于-100dB时表示-inf。
+    Args:
+        track_name (str, optional): _description_. track的名称
+        volume (float, optional): _description_. 取值范围为[-100, +12]dB，小于-100dB时表示-inf。
+
+    Returns:
+        str: _description_ 结果
+    """
+    success, message = helper_reaper_get_current_project()
+    if not success:
+        return message
+    track = project._get_track_by_name(track_name)
+    if track is None:
+        return f"没有找到音轨{track_name}。"
+    
+    import reapy
+    from reapy import reascript_api as reaper
+    track.make_only_selected_track()
+    if volume < -100:
+        track.set_info_value("D_VOL", 0)
+    elif volume > 12:
+        track.set_info_value("D_VOL", 4)
+    else:
+        track.set_info_value("D_VOL", 10 ** (volume / 20))
+    reaper.UpdateArrange()
+    
+    if volume < -100:
+        return f"成功设置音轨{track_name}的音量为-inf。"
+    elif volume > 12:
+        return f"成功设置音轨{track_name}的音量为+12dB。"
+    else:
+        return f"成功设置音轨{track_name}的音量为{volume}dB。"
 
 if __name__ == "__main__":
     # 初始化并运行 server
