@@ -1,7 +1,9 @@
 # 项目运行与说明
 ## 配置Reapy库
 ReaScript是Reaper官方脚本，Reapy是ReaScript的Python扩展
+
 Reapy需要安装为全局的Python库，库名称为python-reapy
+
 **配置Reapy库**
 1. 安装全局版本的Reapy库
 2. 在Reaper的Preference中，找到ReaScript选项，配置Python信息，并启用Python：“Enable Pthon for use with ReaScript"
@@ -13,8 +15,11 @@ Reapy需要安装为全局的Python库，库名称为python-reapy
 
 ## 配置MCP库
 本文使用VS Code作为MCP Host，其他Host使用方法同理
+
 MCP Server使用的虚拟环境为uv
+
 **MCP Server 配置信息**
+```JSON
 "mcp": {
         "inputs": [],
         "servers": {
@@ -29,6 +34,7 @@ MCP Server使用的虚拟环境为uv
             }
         }
     }
+```
 4. 打开Copilot，选择Agent模式，就会看到加载了两个MCP工具。
 ![Copilot](/article/agent_mode.png)
 
@@ -36,8 +42,11 @@ MCP Server使用的虚拟环境为uv
 
 ## 文件夹说明
 article: 文档中使用的图片
+
 pxqmr: MCP Server本体，main.py是MCP Tools的实现代码
+
 resource：测试用音频，a-g都是同样的声音
+
 testpy: 开发过程中的一些实验代码，Jupyter Notebook中是Reapy的测试代码
 
 ## 运行示例
@@ -45,6 +54,7 @@ testpy: 开发过程中的一些实验代码，Jupyter Notebook中是Reapy的测
 ![导入效果](/article/after_import.png)
 
 
+## 工具列表
 | 函数名 | 功能概述 | 参数示例 |
 |---------|----------|------------|
 | `mcp_server_init_get_audio_description` | 获取音频描述文件信息 | - |
