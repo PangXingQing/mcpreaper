@@ -105,17 +105,31 @@ pip install mcp[cli] python-reapy numpy scipy matplotlib
 
 #### 5.2 启用 Distant API（关键步骤）
 
-需要创建配置文件来启用远程 API 访问：
+这是最重要的步骤！reapy 通过 **Distant API** 与 Reaper 通信，需要在 Reaper 内部启用。
 
-**方法一：自动配置（推荐）**
+**方法一：在 Reaper 中运行启用脚本（推荐）**
 
-在项目根目录运行：
+1. 确保 Reaper 已启动
+2. 打开 Reaper 的 **Actions** 对话框（按 `Shift + ?` 或 `Actions` → `Show action list...`）
+3. 点击 `ReaScript: Load script...`
+4. 选择以下脚本文件：
+   ```
+   C:\Users\你的用户名\Desktop\mcp\scripts\enable_reapy_server.lua
+   ```
+5. 脚本运行后会弹出成功提示
 
-```bash
-python -c "import reapy; reapy.configure_reaper()"
-```
+**方法二：使用 reapy 内置脚本**
 
-**方法二：手动配置**
+1. 确保 Reaper 已启动
+2. 打开 Reaper 的 **Actions** 对话框
+3. 找到并运行 `ReaScript: reapy - Enable Distant API`
+   - 如果找不到这个动作，需要先运行：
+     ```bash
+     python -c "import reapy; reapy.configure_reaper()"
+     ```
+     然后重启 Reaper
+
+**方法三：手动配置**
 
 1. **创建 `enable_distant_api.txt` 文件**：
    - **Windows**: `%APPDATA%\REAPER\enable_distant_api.txt`
@@ -124,13 +138,14 @@ python -c "import reapy; reapy.configure_reaper()"
    
    文件内容只需写入：`1`
 
-2. **创建 `reaper-python.ini` 文件**（Windows）：
-   - 路径：`%APPDATA%\REAPER\reaper-python.ini`
-   - 内容：
-     ```ini
-     [PYTHON]
-     PYTHONLIBRARY=C:\path\to\python3XX.dll
-     ```
+2. **确保 Web Interface 已启用**（端口 2307）：
+   - 进入 `Options` → `Preferences` → `Control/OSC/web`
+   - 确认存在端口为 `2307` 的 HTTP Web Interface
+   - 如果没有，点击 `Add` → `Web Browser Interface` → 设置端口为 `2307`
+
+3. **重启 Reaper** 后，在 Reaper 中运行一次 `reapy.reascripts.activate_reapy_server` 脚本
+
+**重要提示**：仅创建配置文件不够，**必须在 Reaper 内部运行一次启用脚本**，reapy 才能从外部连接！
 
 #### 5.3 启用 Web Interface（可选）
 
