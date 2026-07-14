@@ -91,15 +91,95 @@ pip install mcp[cli] python-reapy numpy scipy matplotlib
 
 ### 5. 配置 Reaper
 
-确保 Reaper 已启用 ReaScript 远程控制：
+本项目使用 **reapy** 库通过 ReaScript Distant API 控制 Reaper。以下是完整的配置步骤：
+
+#### 5.1 启用 Python ReaScript
 
 1. 打开 Reaper
-2. 进入 `Options` → `Preferences` → `Control/OSC/web`
-3. 选择 `ReaScript` 选项卡
-4. 勾选 `Allow external script control`
-5. 确保 `Script execution` 设置为 `Allow all`
+2. 进入 `Options` → `Preferences` → `Plug-ins` → `ReaScript`
+3. 勾选 **Enable Python for use with ReaScript**
+4. 在 **Custom path to Python dll directory** 中设置 Python DLL 路径：
+   - **Windows**: `C:\Users\你的用户名\AppData\Local\Programs\Python\Python3XX`（包含 `python3XX.dll` 的目录）
+   - **macOS**: `/opt/homebrew/opt/python@3.X/Frameworks/Python.framework/Versions/3.X/lib`（包含 `libpython3.X.dylib` 的目录）
+   - **Linux**: `/usr/lib/python3.X/config-3.X-x86_64-linux-gnu`（包含 `libpython3.X.so` 的目录）
+
+#### 5.2 启用 Distant API（关键步骤）
+
+需要创建配置文件来启用远程 API 访问：
+
+**方法一：自动配置（推荐）**
+
+在项目根目录运行：
+
+```bash
+python -c "import reapy; reapy.configure_reaper()"
+```
+
+**方法二：手动配置**
+
+1. **创建 `enable_distant_api.txt` 文件**：
+   - **Windows**: `%APPDATA%\REAPER\enable_distant_api.txt`
+   - **macOS**: `~/Library/Application Support/REAPER/enable_distant_api.txt`
+   - **Linux**: `~/.config/REAPER/enable_distant_api.txt`
+   
+   文件内容只需写入：`1`
+
+2. **创建 `reaper-python.ini` 文件**（Windows）：
+   - 路径：`%APPDATA%\REAPER\reaper-python.ini`
+   - 内容：
+     ```ini
+     [PYTHON]
+     PYTHONLIBRARY=C:\path\to\python3XX.dll
+     ```
+
+#### 5.3 启用 Web Interface（可选）
+
+如果需要通过 Web 控制 Reaper：
+
+1. 进入 `Options` → `Preferences` → `Control/OSC/web`
+2. 点击 `Add` → 选择 `Web Browser Interface`
+3. 设置端口（默认 8080）
+4. 点击 `OK`
+
+#### 5.4 重启 Reaper
+
+完成以上配置后，**必须重启 Reaper** 才能使设置生效。
 
 ### 6. 验证安装
+
+#### 6.1 检查 Python DLL 路径
+
+```bash
+# 查看当前Python安装路径
+python -c "import sys; print('Python路径:', sys.prefix); print('Python版本:', sys.version_info)"
+```
+
+输出示例：
+```
+Python路径: C:\Users\你的用户名\AppData\Local\Programs\Python\Python311
+Python版本: sys.version_info(major=3, minor=11, micro=9, ...)
+```
+
+#### 6.2 检查 reapy 安装
+
+```bash
+python -c "import reapy; print('reapy版本:', reapy.__version__)"
+```
+
+#### 6.3 验证 Reaper 连接
+
+确保 Reaper 已启动，然后运行：
+
+```bash
+python -c "import reapy; reapy.connect(); print('成功连接到Reaper!')"
+```
+
+如果连接失败，可能是以下原因：
+1. Reaper 未启动
+2. Distant API 未启用
+3. Python DLL 路径配置错误
+
+#### 6.4 测试 MCP 服务
 
 ```bash
 python main.py --help
