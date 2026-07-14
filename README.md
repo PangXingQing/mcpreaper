@@ -17,6 +17,7 @@
 - [使用示例](#使用示例)
 - [项目结构](#项目结构)
 - [测试脚本](#测试脚本)
+- [LLM客户端配置教程](#llm客户端配置教程)
 - [故障排除](#故障排除)
 - [许可证](#许可证)
 
@@ -459,6 +460,426 @@ python test_dsp_workflow.py
 2. 应用多种DSP处理（低通/高通/带通滤波、Peak EQ、Shelf EQ）
 3. 生成波形图和频谱图
 4. 生成测试报告
+
+---
+
+## LLM客户端配置教程
+
+以下是在各主流LLM客户端中配置本MCP服务的详细步骤，所有配置方法均来自官方文档。
+
+### 前置条件
+
+1. 确保已完成本项目的安装步骤
+2. 确保Reaper已启动并启用外部脚本控制
+3. 确保已激活虚拟环境
+
+### 1. CherryStudio
+
+官方文档：https://docs.cherry-ai.com/docs/en-us/advanced-basic/mcp
+
+**方法一：图形化界面配置**
+
+1. 打开 CherryStudio
+2. 点击左下角 **「设置」**
+3. 进入 **「MCP 服务器」** 选项卡
+4. 点击右上角 **「添加」** → 选择 **「从 JSON 导入」**
+5. 粘贴以下 JSON 配置：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+6. 将 `C:/path/to/mcpreaper/main.py` 替换为你的实际路径（使用正斜杠）
+7. 点击 **「确定」**
+8. 点击开关启用服务器
+
+**方法二：使用虚拟环境**
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["-m", "venv", ".venv", "&&", "python", "main.py"],
+      "env": {},
+      "cwd": "C:/path/to/mcpreaper"
+    }
+  }
+}
+```
+
+**使用方式**：在聊天界面底部点击 MCP 按钮，选中 `mcpreaper` 服务。
+
+---
+
+### 2. WorkBuddy
+
+官方文档：https://cloud.tencent.cn/developer/article/2701462
+
+**方法一：可视化界面配置**
+
+1. 在 CodeBuddy IDE 侧边栏的对话面板右上角，点击 `CodeBuddy Settings` 齿轮图标
+2. 在设置界面中，切换到 **MCP** 标签页
+3. 点击右侧的 `Add MCP` 按钮
+4. 粘贴以下 JSON 配置：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {},
+      "description": "Reaper音频编辑器控制MCP服务"
+    }
+  }
+}
+```
+
+5. 点击 `Try to Run` 按钮验证配置
+
+**方法二：手动编辑配置文件**
+
+配置文件路径：`~/.workbuddy/mcp.json`（Windows：`C:\Users\你的用户名\.workbuddy\mcp.json`）
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+---
+
+### 3. TRAE IDE
+
+官方文档：https://docs.trae.ai/ide/add-mcp-servers
+
+**方法一：从MCP市场添加**
+
+1. 在 IDE 模式界面中，点击右上角的 **设置** 图标
+2. 在左侧导航栏中，选择 **MCP**
+3. 点击 **添加** → **从市场添加**
+4. 在市场中搜索并找到 mcpreaper（若已发布）
+
+**方法二：手动配置**
+
+1. 点击 **添加** → **手动添加**
+2. 填入以下 JSON 配置：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+**方法三：项目级配置**
+
+在项目根目录下创建 `.trae/mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["${workspaceFolder}/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+---
+
+### 4. Claude Code
+
+官方文档：https://code.claude.com/docs/en/mcp-quickstart
+
+**方法一：CLI命令配置**
+
+在终端中运行：
+
+```bash
+claude mcp add mcpreaper -- python C:/path/to/mcpreaper/main.py
+```
+
+**方法二：编辑配置文件**
+
+配置文件路径：`~/.claude.json`（项目级）或 `~/.claude/config.json`（全局）
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+**方法三：HTTP服务器模式**
+
+如果你的MCP服务通过HTTP暴露（需修改main.py支持HTTP）：
+
+```bash
+claude mcp add --transport http mcpreaper http://localhost:8000/mcp
+```
+
+**验证配置**：
+
+```bash
+claude mcp list
+```
+
+---
+
+### 5. VS Code
+
+官方文档：https://code.visualstudio.com/docs/copilot/customization/mcp-servers
+
+**方法一：使用Continue扩展**
+
+1. 安装 Continue 扩展：https://marketplace.visualstudio.com/items?itemName=Continue.continue
+2. 编辑 Continue 配置文件 `~/.continue/config.yaml`：
+
+```yaml
+mcpServers:
+  - name: mcpreaper
+    command: python
+    args:
+      - C:/path/to/mcpreaper/main.py
+```
+
+**方法二：使用VS Code内置MCP配置**
+
+1. 打开命令面板（Ctrl+Shift+P）
+2. 运行 `MCP: Open User Configuration`
+3. 在 `mcp.json` 文件中添加：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+**方法三：项目级配置**
+
+在 `.vscode/mcp.json` 中添加配置：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["${workspaceFolder}/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+---
+
+### 6. Chat Box
+
+官方文档：https://docs.chatboxai.app/guides/mcp.md
+
+**方法一：图形化界面配置**
+
+1. 打开 Chat Box
+2. 进入 **设置 - MCP** 页面
+3. 点击 **「添加服务器」**
+4. 手动配置：
+   - 名称：`mcpreaper`
+   - 命令：`python`
+   - 参数：`C:/path/to/mcpreaper/main.py`
+
+**方法二：一键安装链接**
+
+生成一键安装链接：
+
+1. 创建配置JSON：
+
+```json
+{
+  "name": "mcpreaper",
+  "command": "python",
+  "args": ["C:/path/to/mcpreaper/main.py"],
+  "env": {}
+}
+```
+
+2. 使用 base64 编码配置
+3. 生成链接：`chatbox://mcp/install?server=BASE64_ENCODED_CONFIG`
+
+---
+
+### 7. Codex CLI
+
+官方文档：https://codex.danielvaughan.com/2026/05/19/codex-cli-mcp-server-management-cli-commands-oauth-streamable-http-production-patterns/
+
+**方法一：CLI命令配置**
+
+```bash
+codex mcp add mcpreaper -- python C:/path/to/mcpreaper/main.py
+```
+
+**方法二：编辑config.toml**
+
+配置文件路径：`~/.codex/config.toml`
+
+```toml
+[mcp_servers.mcpreaper]
+command = "python"
+args = ["C:/path/to/mcpreaper/main.py"]
+enabled = true
+
+[mcp_servers.mcpreaper.env]
+# 可选：添加环境变量
+```
+
+**方法三：项目级配置**
+
+在项目根目录创建 `.codex/config.toml`：
+
+```toml
+[mcp_servers.mcpreaper]
+command = "python"
+args = ["${workspaceFolder}/main.py"]
+enabled = true
+cwd = "${workspaceFolder}"
+```
+
+**验证配置**：
+
+```bash
+codex mcp list
+```
+
+---
+
+### 8. Cursor
+
+官方文档：https://cursor.com/docs/mcp
+
+**方法一：全局配置**
+
+配置文件路径：`~/.cursor/mcp.json`（Windows：`%APPDATA%/Cursor/mcp.json`）
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+**方法二：项目级配置**
+
+在项目根目录创建 `.cursor/mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "python",
+      "args": ["${workspaceFolder}/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+**方法三：图形化配置**
+
+1. 打开 Cursor Settings
+2. 搜索 **MCP**
+3. 在 **MCP Tools** 部分点击 **New MCP Server**
+4. 粘贴配置并保存
+
+**环境变量支持**：
+
+Cursor 支持配置插值：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "${env:PYTHON_PATH}",
+      "args": ["${workspaceFolder}/main.py"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 通用配置要点
+
+#### Windows路径注意事项
+
+在JSON配置中，Windows路径有两种写法：
+- 使用正斜杠：`C:/path/to/mcpreaper/main.py`
+- 使用双反斜杠：`C:\\path\\to\\mcpreaper\\main.py`
+
+#### 虚拟环境激活
+
+如果使用虚拟环境，需要确保使用正确的Python路径：
+
+```json
+{
+  "mcpServers": {
+    "mcpreaper": {
+      "command": "C:/path/to/mcpreaper/.venv/Scripts/python.exe",
+      "args": ["C:/path/to/mcpreaper/main.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+#### 配置验证
+
+添加配置后，建议验证服务器是否正常运行：
+1. 检查服务器状态指示灯（绿色表示正常）
+2. 在对话中尝试调用工具：`帮我获取Reaper项目中的所有音轨`
+3. 查看工具列表是否包含所有 `reaper_*` 工具
 
 ---
 
