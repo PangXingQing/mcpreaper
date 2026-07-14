@@ -49,7 +49,7 @@
 
 | 依赖 | 版本要求 | 说明 |
 |------|---------|------|
-| Python | 3.11+ | 推荐使用最新稳定版本 |
+| Python | **3.11** | ⚠️ REAPER 7.73 不支持 Python 3.14，必须使用 Python 3.11 |
 | REAPER | 6.0+ | 音频编辑器，必须已安装 |
 | reapy | latest | Python库，用于控制Reaper |
 | mcp | latest | Model Context Protocol SDK |
@@ -91,113 +91,143 @@ pip install mcp[cli] python-reapy numpy scipy matplotlib
 
 ### 5. 配置 Reaper
 
+> ⚠️ **重要**：本节已根据 Windows + REAPER v7.73 + Python 3.11 实际环境验证。
+
 本项目使用 **reapy** 库通过 ReaScript Distant API 控制 Reaper。以下是完整的配置步骤：
 
-#### 5.1 启用 Python ReaScript
+#### 5.1 Python 版本准备
+
+REAPER 7.73 的 ReaScript 不支持 Python 3.14。**必须使用 Python 3.11**。
+
+```bash
+# 检查已安装的 Python 版本
+py -0p
+
+# 如果没有 Python 3.11，通过 winget 安装
+winget install -e --id Python.Python.3.11
+
+# 确认安装路径和 DLL
+py -3.11 -c "import sys,os; print('exe=', sys.executable); print('dll311=', os.path.exists(os.path.join(sys.base_prefix, 'python311.dll')))"
+```
+
+预期输出：
+```
+exe= D:\Program Files\Python311\python.exe
+dll311= True
+```
+
+#### 5.2 创建并配置虚拟环境
+
+```bash
+# 删除旧虚拟环境（如果存在）
+if (Test-Path '.venv') { Remove-Item -Recurse -Force '.venv' }
+
+# 用 Python 3.11 创建虚拟环境
+py -3.11 -m venv .venv
+
+# 安装依赖
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install mcp[cli] python-reapy numpy scipy matplotlib
+```
+
+#### 5.3 启用 Python ReaScript
 
 1. 打开 Reaper
 2. 进入 `Options` → `Preferences` → `Plug-ins` → `ReaScript`
 3. 勾选 **Enable Python for use with ReaScript**
-4. 在 **Custom path to Python dll directory** 中设置 Python DLL 路径：
-   - **Windows**: `C:\Users\你的用户名\AppData\Local\Programs\Python\Python3XX`（包含 `python3XX.dll` 的目录）
-   - **macOS**: `/opt/homebrew/opt/python@3.X/Frameworks/Python.framework/Versions/3.X/lib`（包含 `libpython3.X.dylib` 的目录）
-   - **Linux**: `/usr/lib/python3.X/config-3.X-x86_64-linux-gnu`（包含 `libpython3.X.so` 的目录）
+4. 在 **Custom path to Python dll directory** 中设置：
+   ```
+   D:\Program Files\Python311
+   ```
+   （包含 `python311.dll` 的目录）
+5. 点击 **OK** 并重启 Reaper
 
-#### 5.2 启用 Distant API（关键步骤）
+#### 5.4 启用 Distant API + Web Interface（关键步骤）
 
 这是最重要的步骤！reapy 通过 **Distant API** 与 Reaper 通信，需要在 Reaper 内部启用。
 
-**方法一：在 Reaper 中运行启用脚本（推荐）**
+**推荐方法：在 Reaper 中运行启用脚本**
 
 1. 确保 Reaper 已启动
-2. 打开 Reaper 的 **Actions** 对话框（按 `Shift + ?` 或 `Actions` → `Show action list...`）
+2. 打开 Reaper 的 **Actions** 对话框（`Shift + ?` 或 `Actions` → `Show action list...`）
 3. 点击 `ReaScript: Load script...`
-4. 选择以下脚本文件：
+4. 选择项目中的脚本：
    ```
-   C:\Users\你的用户名\Desktop\mcp\scripts\enable_reapy_server.lua
+   scripts\enable_reapy_server.lua
    ```
-5. 脚本运行后会弹出成功提示
+5. 如果 Lua 报错 `attempt to call a nil value (field 'set_config_var_string')` 或弹出 "Partial Success"，
+   请手动添加 Web Interface：`Options → Preferences → Control/OSC/web → Add → Web Browser Interface`，端口设为 `2307`
+6. 脚本会自动创建 `enable_distant_api.txt` 并持久化 `reapy/server_port=2306`
 
-**方法二：使用 reapy 内置脚本**
+**验证 Web Interface**
 
-1. 确保 Reaper 已启动
-2. 打开 Reaper 的 **Actions** 对话框
-3. 找到并运行 `ReaScript: reapy - Enable Distant API`
-   - 如果找不到这个动作，需要先运行：
-     ```bash
-     python -c "import reapy; reapy.configure_reaper()"
-     ```
-     然后重启 Reaper
+浏览器访问以下地址，应看到 "REAPER control" 页面：
+```
+http://192.168.1.8:2307/
+```
 
-**方法三：手动配置**
+#### 5.5 配置 reapy 连接参数
 
-1. **创建 `enable_distant_api.txt` 文件**：
-   - **Windows**: `%APPDATA%\REAPER\enable_distant_api.txt`
-   - **macOS**: `~/Library/Application Support/REAPER/enable_distant_api.txt`
-   - **Linux**: `~/.config/REAPER/enable_distant_api.txt`
-   
-   文件内容只需写入：`1`
+由于 Windows 上 `localhost` 可能被解析为 IPv6（`::1`），而 REAPER Web 只监听 IPv4，
+导致 `reapy` 模块导入时连接超时。本项目已对 `reapy` 包做了以下适配修改：
 
-2. **确保 Web Interface 已启用**（端口 2307）：
-   - 进入 `Options` → `Preferences` → `Control/OSC/web`
-   - 确认存在端口为 `2307` 的 HTTP Web Interface
-   - 如果没有，点击 `Add` → `Web Browser Interface` → 设置端口为 `2307`
+- `reapy/tools/network/machines.py`：默认连接 host 改为 `192.168.1.8`，module-level `connect()` 用 try/except 包裹
+- `reapy/tools/network/client.py`：`_connect` 中 `recv` 加 3 秒超时保护
 
-3. **重启 Reaper** 后，在 Reaper 中运行一次 `reapy.reascripts.activate_reapy_server` 脚本
+这些修改位于 `.venv/Lib/site-packages/reapy/tools/network/` 中。
 
-**重要提示**：仅创建配置文件不够，**必须在 Reaper 内部运行一次启用脚本**，reapy 才能从外部连接！
+#### 5.6 启动绑定脚本（可选）
 
-#### 5.3 启用 Web Interface（可选）
+将 `scripts/reapy_bind_local_2306.lua` 加载到 Reaper Action List 中：
+1. 打开 Action List
+2. 搜索 `reapy_bind_local_2306`
+3. 双击运行，看到 Success 提示
+4. （可选）用 SWS 设为启动动作，实现开机自启
 
-如果需要通过 Web 控制 Reaper：
-
-1. 进入 `Options` → `Preferences` → `Control/OSC/web`
-2. 点击 `Add` → 选择 `Web Browser Interface`
-3. 设置端口（默认 8080）
-4. 点击 `OK`
-
-#### 5.4 重启 Reaper
-
-完成以上配置后，**必须重启 Reaper** 才能使设置生效。
+也可通过 VS Code 任务一键绑定（需保持 Reaper 运行）：
+```bash
+mcpreaper: bind reapy localhost 2306
+```
 
 ### 6. 验证安装
 
-#### 6.1 检查 Python DLL 路径
+#### 6.1 检查 Python 与虚拟环境
 
 ```bash
-# 查看当前Python安装路径
-python -c "import sys; print('Python路径:', sys.prefix); print('Python版本:', sys.version_info)"
+.venv\Scripts\python.exe -V
+# Python 3.11.9
 ```
 
-输出示例：
-```
-Python路径: C:\Users\你的用户名\AppData\Local\Programs\Python\Python311
-Python版本: sys.version_info(major=3, minor=11, micro=9, ...)
-```
-
-#### 6.2 检查 reapy 安装
-
-```bash
-python -c "import reapy; print('reapy版本:', reapy.__version__)"
-```
-
-#### 6.3 验证 Reaper 连接
+#### 6.2 验证 Reaper 连接
 
 确保 Reaper 已启动，然后运行：
 
 ```bash
-python -c "import reapy; reapy.connect(); print('成功连接到Reaper!')"
+.venv\Scripts\python.exe -c "import reapy; reapy.connect(); print('成功连接到Reaper!')"
 ```
 
 如果连接失败，可能是以下原因：
 1. Reaper 未启动
 2. Distant API 未启用
 3. Python DLL 路径配置错误
+4. `localhost` 解析问题（尝试使用 `192.168.1.8`）
 
-#### 6.4 测试 MCP 服务
+#### 6.3 测试 MCP 服务
 
 ```bash
-python main.py --help
+.venv\Scripts\python.exe main.py
+```
+
+服务启动后通过 stdio 等待 LLM 客户端连接。
+
+#### 6.4 端口连通性检查
+
+```powershell
+# 检查 REAPER Web Interface（端口 2307）
+Test-NetConnection -ComputerName 192.168.1.8 -Port 2307
+
+# 检查 reapy server 端口（如果有）
+Test-NetConnection -ComputerName 127.0.0.1 -Port 2306
 ```
 
 ---
@@ -1082,6 +1112,33 @@ A: 请确保：
 1. Reaper已启动并运行
 2. 已启用外部脚本控制（Options → Preferences → Control/OSC/web → ReaScript）
 3. Script execution 设置为 Allow all
+4. Python 版本为 3.11（REAPER 7.73 不支持 3.14）
+
+**Q: Extension not supported: "py"**
+
+A: REAPER 的 ReaScript Python 未正确配置。请检查：
+1. `Options → Preferences → Plug-ins → ReaScript`
+2. 确认 **Enable Python for use with ReaScript** 已勾选
+3. **Custom path to Python dll directory** 设置为包含 `python311.dll` 的目录
+4. 例：`D:\Program Files\Python311`
+5. 重启 Reaper
+
+**Q: reapy 导入时卡死 / import reapy 无响应**
+
+A: 常见原因及解决方案：
+1. **`localhost` 解析为 IPv6**：Windows 上 `localhost` 可能解析为 `::1`，但 REAPER Web 只监听 IPv4。
+   项目已修改 `reapy` 包默认使用 `192.168.1.8`。
+2. **reapy server port (2306) 不发 banner**：REAPER 进程监听 2306 端口但不发送 reapy 协议数据。
+   已在 client.py 的 `_connect` 中添加 3 秒超时保护。
+3. 尝试运行：`MCP: Restart Server (mcpreaper)`
+
+**Q: VS Code MCP 显示 "mcpreaper 无法启动"**
+
+A: 排查步骤：
+1. 确认 `%APPDATA%\Code\User\mcp.json` 或 `.vscode/mcp.json` 中配置格式为 `"servers"`（非 `"mcpServers"`）
+2. 确认 VS Code 设置中已启用 Copilot MCP：`"chat.mcp.enabled": true`
+3. 执行 `Developer: Reload Window` 刷新配置
+4. 执行 `MCP: List Servers` 查看状态
 
 **Q: 提示 reapy 模块未找到**
 

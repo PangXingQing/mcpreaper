@@ -1,4 +1,5 @@
 import traceback
+from functools import wraps
 from typing import Any, Dict, Optional, Union
 
 class ReaperError(Exception):
@@ -90,6 +91,7 @@ def format_success_response(data: Any = None, message: str = "") -> Dict[str, An
     return response
 
 def reaper_tool_error_handler(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)

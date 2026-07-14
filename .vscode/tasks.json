@@ -1,0 +1,51 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mcpreaper: install deps (.venv)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "${workspaceFolder}/requirements.txt"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "mcpreaper: run server",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "${workspaceFolder}/main.py"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "mcpreaper: check reaper connection",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-c",
+        "import reapy; reapy.connect(); print('reaper_connection=ok')"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "mcpreaper: bind reapy localhost 2306",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "$base='http://192.168.1.8:2307/_'; $set=\"$base/SET/EXTSTATE/reapy/server_port/2306\"; Invoke-WebRequest -Uri $set -UseBasicParsing -TimeoutSec 3 | Out-Null; $act=((Invoke-WebRequest -Uri \"$base/GET/EXTSTATE/reapy/activate_reapy_server\" -UseBasicParsing -TimeoutSec 3).Content.Split(\"`t\")[-1]).Trim(); if ($act.StartsWith('\"') -and $act.EndsWith('\"')) { $act=$act.Substring(1,$act.Length-2) }; Invoke-WebRequest -Uri \"$base/$act\" -UseBasicParsing -TimeoutSec 3 | Out-Null; $port=((Invoke-WebRequest -Uri \"$base/GET/EXTSTATE/reapy/server_port\" -UseBasicParsing -TimeoutSec 3).Content.Split(\"`t\")[-1]).Trim(); Write-Output \"server_port=$port\""
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

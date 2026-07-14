@@ -13,8 +13,7 @@ __pycache__/
 .coverage
 htmlcov/
 
-# IDE
-.vscode/
+# IDE - personal settings
 .idea/
 *.swp
 *.swo

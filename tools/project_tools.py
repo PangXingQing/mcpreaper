@@ -34,7 +34,7 @@ def register_project_tools(mcp: FastMCP):
                 "length": project.length,
                 "num_tracks": len(project.tracks),
                 "num_items": len(project.items),
-                "sample_rate": project.sample_rate,
+                "sample_rate": project.get_info_value('PROJECT_SRATE'),
                 "bpm": project.bpm,
                 "is_playing": project.is_playing
             })
