@@ -15,7 +15,7 @@ mcp = FastMCP("pxqmr")
 
 file_info_list = None
 
-WAV_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "WAV")
+WAV_DIR = os.path.join(os.path.dirname(__file__), "WAV")
 RES_DES_PATH = os.path.join(WAV_DIR, "description.txt")
 
 @mcp.tool()
