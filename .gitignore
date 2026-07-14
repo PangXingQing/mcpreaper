@@ -39,3 +39,9 @@ build/
 
 # uv
 uv.lock
+
+# Test generated files
+WAV/
+plots/
+TEST_REPORT.md
+test_*.py
