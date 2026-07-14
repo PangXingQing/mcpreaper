@@ -518,6 +518,15 @@ python test_dsp_workflow.py
 
 **使用方式**：在聊天界面底部点击 MCP 按钮，选中 `mcpreaper` 服务。
 
+**验证配置**：
+
+- **界面验证**：配置后服务器状态显示绿色 ✅，展开可看到加载的工具列表
+- **命令行测试**（启动前先验证Python路径）：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在聊天中输入 `帮我获取Reaper项目中的所有音轨`
+
 ---
 
 ### 2. WorkBuddy
@@ -563,6 +572,15 @@ python test_dsp_workflow.py
   }
 }
 ```
+
+**验证配置**：
+
+- **界面验证**：点击 `Try to Run` 按钮，看到绿灯亮起表示配置成功
+- **命令行测试**：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在聊天中输入 `帮我获取Reaper项目中的所有音轨`
 
 ---
 
@@ -610,6 +628,16 @@ python test_dsp_workflow.py
 }
 ```
 
+**验证配置**：
+
+- **界面验证**：MCP 列表中服务器状态显示绿色 ✅
+- **命令行测试**：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在 AI 对话中输入 `帮我获取Reaper项目中的所有音轨`
+- **项目级验证**：确保已在 **设置 > MCP** 中打开 **启用项目级 MCP** 开关
+
 ---
 
 ### 4. Claude Code
@@ -650,9 +678,22 @@ claude mcp add --transport http mcpreaper http://localhost:8000/mcp
 
 **验证配置**：
 
-```bash
-claude mcp list
-```
+- **CLI验证**：
+  ```bash
+  claude mcp list
+  ```
+- **命令行测试**（启动前先验证Python路径）：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在 Claude Code 聊天中输入 `帮我获取Reaper项目中的所有音轨`
+- **配置文件验证**：检查配置是否正确写入
+  ```bash
+  # Windows
+  type %USERPROFILE%\.claude.json
+  # macOS/Linux
+  cat ~/.claude.json
+  ```
 
 ---
 
@@ -707,6 +748,16 @@ mcpServers:
 }
 ```
 
+**验证配置**：
+
+- **Continue扩展验证**：打开 Continue 对话，输入 `/tools` 查看工具列表
+- **VS Code内置验证**：打开命令面板（Ctrl+Shift+P），运行 `MCP: List Servers`
+- **命令行测试**：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在 AI 对话中输入 `帮我获取Reaper项目中的所有音轨`
+
 ---
 
 ### 6. Chat Box
@@ -740,6 +791,15 @@ mcpServers:
 
 2. 使用 base64 编码配置
 3. 生成链接：`chatbox://mcp/install?server=BASE64_ENCODED_CONFIG`
+
+**验证配置**：
+
+- **界面验证**：在 **设置 - MCP** 页面查看服务器状态，显示绿色表示正常
+- **命令行测试**：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在聊天中输入 `帮我获取Reaper项目中的所有音轨`
 
 ---
 
@@ -781,9 +841,22 @@ cwd = "${workspaceFolder}"
 
 **验证配置**：
 
-```bash
-codex mcp list
-```
+- **CLI验证**：
+  ```bash
+  codex mcp list
+  ```
+- **命令行测试**（启动前先验证Python路径）：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：在 Codex 会话中输入 `帮我获取Reaper项目中的所有音轨`
+- **配置文件验证**：检查配置是否正确写入
+  ```bash
+  # Windows
+  type %USERPROFILE%\.codex\config.toml
+  # macOS/Linux
+  cat ~/.codex/config.toml
+  ```
 
 ---
 
@@ -847,6 +920,27 @@ Cursor 支持配置插值：
   }
 }
 ```
+
+**验证配置**：
+
+- **界面验证**：在 **Cursor Settings > Tools & Integrations > MCP Tools** 查看服务器状态，绿色表示正常
+- **命令行测试**：
+  ```bash
+  python C:/path/to/mcpreaper/main.py --help
+  ```
+- **对话测试**：打开 Cursor 聊天（Ctrl+L），输入 `帮我获取Reaper项目中的所有音轨`
+- **配置文件验证**：检查配置文件是否正确写入
+  ```bash
+  # Windows - 查看全局配置
+  type %APPDATA%\Cursor\mcp.json
+  # Windows - 查看项目配置
+  type .cursor\mcp.json
+  
+  # macOS/Linux - 查看全局配置
+  cat ~/.cursor/mcp.json
+  # macOS/Linux - 查看项目配置
+  cat .cursor/mcp.json
+  ```
 
 ---
 
