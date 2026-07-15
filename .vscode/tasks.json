@@ -29,21 +29,31 @@
       "type": "shell",
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": [
-        "-c",
-        "import reapy; reapy.connect(); print('reaper_connection=ok')"
+        "${workspaceFolder}/scripts/check_reaper_connection.py"
       ],
       "problemMatcher": []
     },
     {
-      "label": "mcpreaper: bind reapy localhost 2306",
+      "label": "mcpreaper: check web 2307",
       "type": "shell",
       "command": "powershell",
       "args": [
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/check_web_2307.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "mcpreaper: activate reapy server instructions",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
         "-Command",
-        "$base='http://192.168.1.8:2307/_'; $set=\"$base/SET/EXTSTATE/reapy/server_port/2306\"; Invoke-WebRequest -Uri $set -UseBasicParsing -TimeoutSec 3 | Out-Null; $act=((Invoke-WebRequest -Uri \"$base/GET/EXTSTATE/reapy/activate_reapy_server\" -UseBasicParsing -TimeoutSec 3).Content.Split(\"`t\")[-1]).Trim(); if ($act.StartsWith('\"') -and $act.EndsWith('\"')) { $act=$act.Substring(1,$act.Length-2) }; Invoke-WebRequest -Uri \"$base/$act\" -UseBasicParsing -TimeoutSec 3 | Out-Null; $port=((Invoke-WebRequest -Uri \"$base/GET/EXTSTATE/reapy/server_port\" -UseBasicParsing -TimeoutSec 3).Content.Split(\"`t\")[-1]).Trim(); Write-Output \"server_port=$port\""
+        "Write-Output 'In Reaper, load and run script: scripts/enable_reapy_server.lua, then start the MCP server.'"
       ],
       "problemMatcher": []
     }

@@ -8,6 +8,7 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        "REAPER_WEB_PORT": "2307",
         "PYTHONIOENCODING": "utf-8",
         "PYTHONUTF8": "1"
       }
