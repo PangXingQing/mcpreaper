@@ -182,7 +182,7 @@ py -3.11 -m venv .venv
 
 浏览器访问以下地址，应看到 "REAPER control" 页面：
 ```
-http://192.168.1.8:2307/
+http://<本机IPv4>:2307/
 ```
 
 #### 5.5 配置 reapy 连接参数
@@ -226,7 +226,7 @@ mcpreaper: activate reapy server instructions
 1. Reaper 未启动
 2. Distant API 未启用
 3. Python DLL 路径配置错误
-4. `localhost` 解析问题（尝试使用 `192.168.1.8`）
+4. 本机 IPv4 未正确识别（可设置环境变量 `REAPER_WEB_HOST`）
 
 #### 6.3 测试 MCP 服务
 
@@ -554,7 +554,8 @@ reaper_set_reacomp_params("Track 1", -18.0, 4.0, 10.0, 100.0, 3.0)
 ```
 mcpreaper/
 ├── main.py                 # MCP服务器入口
-├── test_dsp_workflow.py    # DSP工作流测试脚本
+├── ReaperProject/          # 测试工程与资源（含 testreaper.rpp / testreaper.wav / testmcp.png）
+├── scripts/                # 连接检查、清理、编曲与验证脚本
 ├── tools/
 │   ├── __init__.py
 │   ├── track_tools.py      # 音轨操作工具
@@ -578,6 +579,7 @@ mcpreaper/
 │   └── error_handler.py    # 统一错误处理模块
 ├── WAV/                    # 生成的WAV文件目录（自动创建）
 ├── plots/                  # 测试生成的图表目录（自动创建）
+├── README.md
 └── .gitignore
 ```
 
@@ -585,19 +587,20 @@ mcpreaper/
 
 ## 测试脚本
 
-### DSP工作流测试
+### 当前可用脚本
 
-运行 `test_dsp_workflow.py` 可以在本地验证波形生成和EQ处理功能，无需启动Reaper：
+常用脚本位于 `scripts/`，例如：
+
+- `check_reaper_connection.py`：检查 reapy 连接与当前工程信息
+- `check_web_2307.ps1`：检查 Reaper Web Interface (2307) 连通性
+- `compose_final.py`：测试工程编排脚本
+- `validate_all_apis.py`：批量验证 MCP 接口可用性
+
+示例：
 
 ```bash
-python test_dsp_workflow.py
+.venv\Scripts\python.exe scripts\check_reaper_connection.py
 ```
-
-该脚本会：
-1. 生成各种波形（正弦波、方波、三角波、锯齿波、噪音）
-2. 应用多种DSP处理（低通/高通/带通滤波、Peak EQ、Shelf EQ）
-3. 生成波形图和频谱图
-4. 生成测试报告
 
 ---
 
