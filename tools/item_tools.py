@@ -80,17 +80,18 @@ def register_item_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
+            from reapy import reascript_api as reaper
             items_info = []
             for item in track.items:
                 for take in item.takes:
                     items_info.append({
                         "item_id": item.id,
                         "take_name": take.name,
-                        "position": item.position,
-                        "length": item.length,
-                        "volume": take.volume,
-                        "pan": take.pan,
-                        "mute": take.mute
+                        "position": reaper.GetMediaItemInfo_Value(item, 'D_POSITION'),
+                        "length": reaper.GetMediaItemInfo_Value(item, 'D_LENGTH'),
+                        "volume": reaper.GetMediaItemTakeInfo_Value(take, 'D_VOL'),
+                        "pan": reaper.GetMediaItemTakeInfo_Value(take, 'D_PAN'),
+                        "mute": bool(reaper.GetMediaItemTakeInfo_Value(take, 'B_MUTE'))
                     })
             return format_success_response(data={"items": items_info, "count": len(items_info)})
         except Exception as e:
@@ -421,7 +422,7 @@ def register_item_tools(mcp: FastMCP):
             else:
                 new_track = track
             
-            item.select()
+            reaper.SetMediaItemSelected(item, True)
             reaper.Main_OnCommand(40698, 0)
             new_track.make_only_selected_track()
             reaper.SetEditCurPos(new_position, True, False)

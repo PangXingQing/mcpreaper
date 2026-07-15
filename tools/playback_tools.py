@@ -122,7 +122,8 @@ def register_playback_tools(mcp: FastMCP):
             raise OperationFailedError("连接Reaper", message)
         
         try:
-            project.play_position = 0
+            from reapy import reascript_api as reaper
+            reaper.SetEditCurPos(0, True, False)
             return format_success_response(message="播放指针已移动到项目开头。")
         except Exception as e:
             raise OperationFailedError("移动播放指针", str(e))
@@ -141,7 +142,8 @@ def register_playback_tools(mcp: FastMCP):
             raise OperationFailedError("连接Reaper", message)
         
         try:
-            project.play_position = project.length
+            from reapy import reascript_api as reaper
+            reaper.SetEditCurPos(project.length, True, False)
             return format_success_response(message="播放指针已移动到项目末尾。")
         except Exception as e:
             raise OperationFailedError("移动播放指针", str(e))
@@ -172,7 +174,8 @@ def register_playback_tools(mcp: FastMCP):
                     f"不能超过项目长度({project.length}秒)"
                 )
             
-            project.play_position = time
+            from reapy import reascript_api as reaper
+            reaper.SetEditCurPos(time, True, False)
             return format_success_response(message=f"播放指针已移动到{time}秒处。")
         except InvalidParameterError:
             raise
@@ -230,7 +233,7 @@ def register_playback_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.SetLoopTimeRange(start_time, end_time, False)
+            reaper.GetSet_LoopTimeRange(True, True, start_time, end_time, False)
             return format_success_response(message=f"循环范围已设置为{start_time}秒到{end_time}秒。")
         except Exception as e:
             raise OperationFailedError("设置循环范围", str(e))
@@ -250,7 +253,7 @@ def register_playback_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            retval, loop_start, loop_end = reaper.GetSet_LoopTimeRange(False, False, 0, 0, False)
+            retval, proj, loop_start, loop_end, allowauto = reaper.GetSet_LoopTimeRange(False, False, 0, 0, False)
             if loop_start == loop_end:
                 raise OperationFailedError("切换循环模式", "请先设置循环范围")
             

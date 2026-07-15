@@ -70,9 +70,9 @@ if f then
     reaper.ShowConsoleMsg("enable_distant_api.txt created.\n")
 end
 
--- Persist default distant API port for reapy clients.
-reaper.SetExtState("reapy", "server_port", "2306", true)
-reaper.ShowConsoleMsg("reapy server_port set to 2306.\n")
+-- Persist the only supported web interface port for Reaper Web.
+reaper.SetExtState("reapy", "server_port", "2307", true)
+reaper.ShowConsoleMsg("reapy server_port set to 2307.\n")
 
 reaper.PreventUIRefresh(-1)
 

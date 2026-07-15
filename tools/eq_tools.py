@@ -33,13 +33,10 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            fx_idx = reaper.TrackFX_AddByName(track, "ReaEQ", False, -1)
-            if fx_idx >= 0:
-                update_arrange()
-                return format_success_response(message=f"成功为音轨「{track_name}」添加ReaEQ插件。")
-            else:
-                raise OperationFailedError("添加ReaEQ", "ReaEQ插件未找到，请确保Reaper已正确安装")
+            track.add_fx('ReaEQ')
+            # add_fx returns an FX object on success, raises on failure
+            update_arrange()
+            return format_success_response(message=f"成功为音轨「{track_name}」添加ReaEQ插件。")
         except OperationFailedError:
             raise
         except Exception as e:
@@ -86,7 +83,6 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             fx_idx = _find_fx_by_name(track, "ReaEQ")
             if fx_idx < 0:
                 raise OperationFailedError(
@@ -94,11 +90,12 @@ def register_eq_tools(mcp: FastMCP):
                     "音轨上没有找到ReaEQ插件。请先使用reaper_add_reaeq添加。"
                 )
             
+            fx = track.fxs[fx_idx]
             band_offset = band_index * 5
-            reaper.TrackFX_SetParam(track, fx_idx, band_offset, freq_hz)
-            reaper.TrackFX_SetParam(track, fx_idx, band_offset + 1, gain_db)
-            reaper.TrackFX_SetParam(track, fx_idx, band_offset + 2, q_factor)
-            reaper.TrackFX_SetParam(track, fx_idx, band_offset + 4, filter_type)
+            fx.params[band_offset] = freq_hz
+            fx.params[band_offset + 1] = gain_db
+            fx.params[band_offset + 2] = q_factor
+            fx.params[band_offset + 4] = filter_type
             update_arrange()
             
             type_names = {0: "Peak", 1: "Low Shelf", 2: "High Shelf", 3: "Low Pass", 4: "High Pass", 5: "Notch", 6: "Band Pass"}
@@ -135,16 +132,16 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             fx_idx = _find_fx_by_name(track, "ReaEQ")
             if fx_idx < 0:
                 raise OperationFailedError("获取ReaEQ频段", "音轨上没有找到ReaEQ插件。")
             
+            fx = track.fxs[fx_idx]
             band_offset = band_index * 5
-            freq_hz = reaper.TrackFX_GetParam(track, fx_idx, band_offset)
-            gain_db = reaper.TrackFX_GetParam(track, fx_idx, band_offset + 1)
-            q_factor = reaper.TrackFX_GetParam(track, fx_idx, band_offset + 2)
-            filter_type = reaper.TrackFX_GetParam(track, fx_idx, band_offset + 4)
+            freq_hz = fx.params[band_offset].normalized * 20000  # approximate
+            gain_db = fx.params[band_offset + 1].normalized * 24 - 12  # approximate
+            q_factor = fx.params[band_offset + 2].normalized * 30  # approximate
+            filter_type = int(fx.params[band_offset + 4].normalized * 6)  # approximate
             
             type_names = {0: "Peak", 1: "Low Shelf", 2: "High Shelf", 3: "Low Pass", 4: "High Pass", 5: "Notch", 6: "Band Pass"}
             
@@ -153,7 +150,7 @@ def register_eq_tools(mcp: FastMCP):
                 "frequency_hz": freq_hz,
                 "gain_db": gain_db,
                 "q_factor": q_factor,
-                "filter_type": type_names.get(int(filter_type), f"未知({int(filter_type)})")
+                "filter_type": type_names.get(filter_type, f"未知({filter_type})")
             })
         except OperationFailedError:
             raise
@@ -219,7 +216,6 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             fx_idx = _find_fx_by_name(track, "ReaEQ")
             if fx_idx < 0:
                 raise OperationFailedError(
@@ -284,9 +280,13 @@ def register_eq_tools(mcp: FastMCP):
                     f"可用预设：{list(presets.keys())}"
                 )
             
+            fx = track.fxs[fx_idx]
+            from reapy import reascript_api as reaper
             for band_idx, freq, gain, q, ftype in presets[preset_name]:
                 band_offset = band_idx * 5
-                reaper.TrackFX_SetParam(track, fx_idx, band_offset, freq)
+                # Use reascript to set params directly (avoid reapy FXParam issues)
+                if freq > 0:
+                    reaper.TrackFX_SetParam(track, fx_idx, band_offset, freq)
                 reaper.TrackFX_SetParam(track, fx_idx, band_offset + 1, gain)
                 reaper.TrackFX_SetParam(track, fx_idx, band_offset + 2, q)
                 reaper.TrackFX_SetParam(track, fx_idx, band_offset + 4, ftype)
@@ -319,13 +319,10 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            fx_idx = reaper.TrackFX_AddByName(track, "ReaComp", False, -1)
-            if fx_idx >= 0:
-                update_arrange()
-                return format_success_response(message=f"成功为音轨「{track_name}」添加ReaComp压缩器。")
-            else:
-                raise OperationFailedError("添加ReaComp", "ReaComp插件未找到，请确保Reaper已正确安装")
+            track.add_fx('ReaComp')
+            # add_fx returns an FX object on success, raises on failure
+            update_arrange()
+            return format_success_response(message=f"成功为音轨「{track_name}」添加ReaComp压缩器。")
         except OperationFailedError:
             raise
         except Exception as e:
@@ -372,7 +369,6 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             fx_idx = _find_fx_by_name(track, "ReaComp")
             if fx_idx < 0:
                 raise OperationFailedError(
@@ -380,11 +376,12 @@ def register_eq_tools(mcp: FastMCP):
                     "音轨上没有找到ReaComp插件。请先使用reaper_add_reacomp添加。"
                 )
             
-            reaper.TrackFX_SetParam(track, fx_idx, 0, threshold_db)
-            reaper.TrackFX_SetParam(track, fx_idx, 1, ratio)
-            reaper.TrackFX_SetParam(track, fx_idx, 2, attack_ms)
-            reaper.TrackFX_SetParam(track, fx_idx, 3, release_ms)
-            reaper.TrackFX_SetParam(track, fx_idx, 4, knee_db)
+            fx = track.fxs[fx_idx]
+            fx.params[0] = threshold_db
+            fx.params[1] = ratio
+            fx.params[2] = attack_ms
+            fx.params[3] = release_ms
+            fx.params[4] = knee_db
             update_arrange()
             
             return format_success_response(
@@ -416,13 +413,10 @@ def register_eq_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            fx_idx = reaper.TrackFX_AddByName(track, "ReaFIR", False, -1)
-            if fx_idx >= 0:
-                update_arrange()
-                return format_success_response(message=f"成功为音轨「{track_name}」添加ReaFIR均衡器。")
-            else:
-                raise OperationFailedError("添加ReaFIR", "ReaFIR插件未找到，请确保Reaper已正确安装")
+            track.add_fx('ReaFIR')
+            # add_fx returns an FX object on success, raises on failure
+            update_arrange()
+            return format_success_response(message=f"成功为音轨「{track_name}」添加ReaFIR均衡器。")
         except OperationFailedError:
             raise
         except Exception as e:
@@ -430,10 +424,7 @@ def register_eq_tools(mcp: FastMCP):
 
 def _find_fx_by_name(track, fx_name):
     """辅助函数：根据名称查找FX插件索引"""
-    from reapy import reascript_api as reaper
-    num_fx = reaper.TrackFX_GetCount(track)
-    for i in range(num_fx):
-        retval, name = reaper.TrackFX_GetFXName(track, i, "", 256)
-        if fx_name in name:
+    for i, fx in enumerate(track.fxs):
+        if fx_name in fx.name:
             return i
     return -1

@@ -11,13 +11,13 @@ def register_marker_tools(mcp: FastMCP):
 
     @mcp.tool()
     @reaper_tool_error_handler
-    def reaper_add_marker(time: float = 0.0, name: str = "") -> dict:
+    def reaper_add_marker(time: float = 0.0, marker_name: str = "") -> dict:
         """
         在指定位置添加标记。
         
         Args:
             time: 标记位置（秒，>= 0）
-            name: 标记名称
+            marker_name: 标记名称
         
         Returns:
             操作结果字典，包含success、message字段
@@ -31,21 +31,21 @@ def register_marker_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.AddProjectMarker(project, False, time, 0, name, -1)
-            return format_success_response(message=f"成功在{time}秒处添加标记「{name}」。")
+            reaper.AddProjectMarker(project, False, time, 0, marker_name, -1)
+            return format_success_response(message=f"成功在{time}秒处添加标记「{marker_name}」。")
         except Exception as e:
             raise OperationFailedError("添加标记", str(e))
 
     @mcp.tool()
     @reaper_tool_error_handler
-    def reaper_add_region(start_time: float = 0.0, end_time: float = 0.0, name: str = "") -> dict:
+    def reaper_add_region(start_time: float = 0.0, end_time: float = 0.0, region_name: str = "") -> dict:
         """
         添加区域。
         
         Args:
             start_time: 区域开始时间（秒，>= 0）
             end_time: 区域结束时间（秒，> start_time）
-            name: 区域名称
+            region_name: 区域名称
         
         Returns:
             操作结果字典，包含success、message字段
@@ -65,8 +65,8 @@ def register_marker_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.AddProjectMarker(project, True, start_time, end_time, name, -1)
-            return format_success_response(message=f"成功添加区域「{name}」，范围{start_time}秒到{end_time}秒。")
+            reaper.AddProjectMarker(project, True, start_time, end_time, region_name, -1)
+            return format_success_response(message=f"成功添加区域「{region_name}」，范围{start_time}秒到{end_time}秒。")
         except Exception as e:
             raise OperationFailedError("添加区域", str(e))
 
@@ -86,10 +86,11 @@ def register_marker_tools(mcp: FastMCP):
         try:
             from reapy import reascript_api as reaper
             markers = []
-            num_markers = reaper.CountProjectMarkers(project)
+            retval, _p, num_markers, num_regions = reaper.CountProjectMarkers(project, 0, 0)
             
             for i in range(num_markers):
-                retval, is_region, pos, rgn_end, name, markrgnindex = reaper.EnumProjectMarkers(i)
+                enum_result = reaper.EnumProjectMarkers(i, 0, 0, 0, '', 256)
+                retval, is_region, _, pos, rgn_end, name, markrgnindex = enum_result
                 markers.append({
                     "index": i,
                     "name": name,
@@ -123,14 +124,16 @@ def register_marker_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_markers = reaper.CountProjectMarkers(project)
-            if index >= num_markers:
+            retval, _p, num_markers, num_regions = reaper.CountProjectMarkers(project, 0, 0)
+            total_count = num_markers + num_regions
+            if index >= total_count:
                 raise InvalidParameterError(
                     "index", index,
-                    f"有效值范围：[0, {num_markers-1}]，项目共有{num_markers}个标记/区域"
+                    f"有效值范围：[0, {total_count-1}]，项目共有{total_count}个标记/区域（{num_markers}个标记，{num_regions}个区域）"
                 )
             
-            retval, is_region, pos, rgn_end, name, markrgnindex = reaper.EnumProjectMarkers(index)
+            enum_result = reaper.EnumProjectMarkers(index, 0, 0, 0, '', 256)
+            retval, is_region, _, pos, rgn_end, name, markrgnindex = enum_result
             reaper.DeleteProjectMarker(project, markrgnindex, is_region)
             
             type_name = "区域" if is_region else "标记"
@@ -165,15 +168,17 @@ def register_marker_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_markers = reaper.CountProjectMarkers(project)
-            if index >= num_markers:
+            retval, _p, num_markers, num_regions = reaper.CountProjectMarkers(project, 0, 0)
+            total_count = num_markers + num_regions
+            if index >= total_count:
                 raise InvalidParameterError(
                     "index", index,
-                    f"有效值范围：[0, {num_markers-1}]，项目共有{num_markers}个标记/区域"
+                    f"有效值范围：[0, {total_count-1}]，项目共有{total_count}个标记/区域（{num_markers}个标记，{num_regions}个区域）"
                 )
             
-            retval, is_region, pos, rgn_end, old_name, markrgnindex = reaper.EnumProjectMarkers(index)
-            reaper.SetProjectMarker(markrgnindex, is_region, pos, rgn_end, new_name, -1)
+            enum_result = reaper.EnumProjectMarkers(index, 0, 0, 0, '', 256)
+            retval, is_region, _, pos, rgn_end, old_name, markrgnindex = enum_result
+            reaper.SetProjectMarker(markrgnindex, is_region, pos, rgn_end, new_name)
             
             type_name = "区域" if is_region else "标记"
             return format_success_response(message=f"成功将{type_name}「{old_name}」重命名为「{new_name}」。")
@@ -203,15 +208,17 @@ def register_marker_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_markers = reaper.CountProjectMarkers(project)
-            if index >= num_markers:
+            retval, _p, num_markers, num_regions = reaper.CountProjectMarkers(project, 0, 0)
+            total_count = num_markers + num_regions
+            if index >= total_count:
                 raise InvalidParameterError(
                     "index", index,
-                    f"有效值范围：[0, {num_markers-1}]，项目共有{num_markers}个标记/区域"
+                    f"有效值范围：[0, {total_count-1}]，项目共有{total_count}个标记/区域（{num_markers}个标记，{num_regions}个区域）"
                 )
             
-            retval, is_region, pos, rgn_end, name, markrgnindex = reaper.EnumProjectMarkers(index)
-            project.play_position = pos
+            enum_result = reaper.EnumProjectMarkers(index, 0, 0, 0, '', 256)
+            retval, is_region, _, pos, rgn_end, name, markrgnindex = enum_result
+            reaper.SetEditCurPos(pos, True, False)
             
             return format_success_response(message=f"已跳转到标记「{name}」位置：{pos}秒。")
         except InvalidParameterError:

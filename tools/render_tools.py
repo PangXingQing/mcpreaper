@@ -47,7 +47,7 @@ def register_render_tools(mcp: FastMCP):
             reaper.GetSetProjectInfo_String(project, "RENDER_FILE", output_path, True)
             
             mode_names = ["时间选择范围", "整个项目", "选区媒体项", "轨道区域"]
-            reaper.GetSetProjectInfo_Int(project, "RENDER_BOUNDSFLAG", render_mode, True)
+            reaper.GetSetProjectInfo(project, "RENDER_BOUNDSFLAG", render_mode, True)
             
             reaper.Main_OnCommand(41893, 0)
             return format_success_response(
@@ -96,8 +96,8 @@ def register_render_tools(mcp: FastMCP):
                     missing_tracks.append(track_name)
             
             reaper.GetSetProjectInfo_String(project, "RENDER_FILE", output_path, True)
-            reaper.GetSetProjectInfo_Int(project, "RENDER_BOUNDSFLAG", 1, True)
-            reaper.GetSetProjectInfo_Int(project, "RENDER_STEMSFLAG", 0, True)
+            reaper.GetSetProjectInfo(project, "RENDER_BOUNDSFLAG", 1, True)
+            reaper.GetSetProjectInfo(project, "RENDER_STEMSFLAG", 0, True)
             
             reaper.Main_OnCommand(41893, 0)
             
@@ -126,11 +126,12 @@ def register_render_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            retval, render_file = reaper.GetSetProjectInfo_String(project, "RENDER_FILE", "", False)
-            bounds_flag = reaper.GetSetProjectInfo_Int(project, "RENDER_BOUNDSFLAG", 0, False)
-            sample_rate = reaper.GetSetProjectInfo_Int(project, "RENDER_SRATE", 0, False)
-            bit_depth = reaper.GetSetProjectInfo_Int(project, "RENDER_BITDEPTH", 0, False)
-            render_format = reaper.GetSetProjectInfo_Int(project, "RENDER_FORMAT", 0, False)
+            result = reaper.GetSetProjectInfo_String(project, "RENDER_FILE", "", False)
+            render_file = result[3] if len(result) > 3 else ""
+            bounds_flag = reaper.GetSetProjectInfo(project, "RENDER_BOUNDSFLAG", 0, False)
+            sample_rate = reaper.GetSetProjectInfo(project, "RENDER_SRATE", 0, False)
+            bit_depth = reaper.GetSetProjectInfo(project, "RENDER_BITDEPTH", 0, False)
+            render_format = reaper.GetSetProjectInfo(project, "RENDER_FORMAT", 0, False)
             
             bounds_mapping = {0: "时间选择范围", 1: "整个项目", 2: "选区媒体项", 3: "轨道区域"}
             format_mapping = {0: "WAV", 1: "MP3", 2: "FLAC", 3: "OGG", 4: "AAC", 5: "WAV64"}
@@ -171,8 +172,8 @@ def register_render_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.GetSetProjectInfo_Int(project, "RENDER_SRATE", sample_rate, True)
-            reaper.GetSetProjectInfo_Int(project, "RENDER_BITDEPTH", bit_depth, True)
+            reaper.GetSetProjectInfo(project, "RENDER_SRATE", sample_rate, True)
+            reaper.GetSetProjectInfo(project, "RENDER_BITDEPTH", bit_depth, True)
             return format_success_response(
                 message=f"成功设置渲染参数：采样率{sample_rate}Hz，位深度{bit_depth}位。"
             )
@@ -216,7 +217,7 @@ def register_render_tools(mcp: FastMCP):
                 )
             
             item = track.items[item_index]
-            item.select()
+            reaper.SetMediaItemSelected(item, True)
             reaper.Main_OnCommand(41588, 0)
             update_arrange()
             
@@ -228,14 +229,14 @@ def register_render_tools(mcp: FastMCP):
 
     @mcp.tool()
     @reaper_tool_error_handler
-    def reaper_create_render_marker_region(start_time: float = 0.0, end_time: float = 0.0, name: str = "Render") -> dict:
+    def reaper_create_render_marker_region(start_time: float = 0.0, end_time: float = 0.0, region_name: str = "Render") -> dict:
         """
         创建渲染区域标记。
         
         Args:
             start_time: 开始时间（秒，>= 0）
             end_time: 结束时间（秒，> start_time）
-            name: 区域名称
+            region_name: 区域名称
         
         Returns:
             操作结果字典，包含success、message字段
@@ -256,11 +257,11 @@ def register_render_tools(mcp: FastMCP):
         try:
             from reapy import reascript_api as reaper
             reaper.GetSet_LoopTimeRange(True, True, start_time, end_time, False)
-            reaper.AddProjectMarker(project, True, start_time, end_time, name, -1, 0)
+            reaper.AddProjectMarker(project, True, start_time, end_time, region_name, -1)
             update_arrange()
             
             return format_success_response(
-                message=f"成功设置渲染区域：{start_time}秒到{end_time}秒（名称：{name}）"
+                message=f"成功设置渲染区域：{start_time}秒到{end_time}秒（名称：{region_name}）"
             )
         except Exception as e:
             raise OperationFailedError("设置渲染区域", str(e))
@@ -310,11 +311,11 @@ def register_render_tools(mcp: FastMCP):
                 os.makedirs(dir_path)
             
             item = track.items[item_index]
-            item.select()
+            reaper.SetMediaItemSelected(item, True)
             
             reaper.GetSetProjectInfo_String(project, "RENDER_FILE", output_path, True)
-            reaper.GetSetProjectInfo_Int(project, "RENDER_BOUNDSFLAG", 2, True)
-            reaper.GetSetProjectInfo_Int(project, "RENDER_STEMSFLAG", 0, True)
+            reaper.GetSetProjectInfo(project, "RENDER_BOUNDSFLAG", 2, True)
+            reaper.GetSetProjectInfo(project, "RENDER_STEMSFLAG", 0, True)
             
             reaper.Main_OnCommand(41893, 0)
             

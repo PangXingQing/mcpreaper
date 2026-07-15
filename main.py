@@ -26,7 +26,7 @@ from utils import (
     ReaperFileNotFoundError
 )
 
-mcp = FastMCP("pxqmr")
+mcp = FastMCP("mcpreaper")
 
 file_info_list = None
 

@@ -85,11 +85,11 @@ def register_track_tools(mcp: FastMCP):
             for track in project.tracks:
                 track_info.append({
                     "name": track.name,
-                    "volume": track.volume,
-                    "pan": track.pan,
-                    "mute": track.mute,
-                    "solo": track.solo,
-                    "rec_arm": track.rec_arm,
+                    "volume": track.get_info_value('D_VOL'),
+                    "pan": track.get_info_value('D_PAN'),
+                    "mute": bool(track.get_info_value('B_MUTE')),
+                    "solo": bool(track.get_info_value('I_SOLO')),
+                    "rec_arm": bool(track.get_info_value('I_RECARM')),
                     "num_items": len(track.items),
                     "num_fx": len(track.fxs)
                 })
@@ -200,7 +200,7 @@ def register_track_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            track.volume = volume
+            track.set_info_value('D_VOL', volume)
             update_arrange()
             db_value = 20 * (volume ** (1/10)) if volume > 0 else "-inf"
             return format_success_response(
@@ -232,13 +232,13 @@ def register_track_tools(mcp: FastMCP):
         
         try:
             if volume_db < -100:
-                track.volume = 0
+                track.set_info_value('D_VOL', 0)
                 display_val = "-inf"
             elif volume_db > 12:
-                track.volume = 4
+                track.set_info_value('D_VOL', 4)
                 display_val = "+12dB"
             else:
-                track.volume = 10 ** (volume_db / 20)
+                track.set_info_value('D_VOL', 10 ** (volume_db / 20))
                 display_val = f"{volume_db}dB"
             update_arrange()
             return format_success_response(
@@ -272,7 +272,7 @@ def register_track_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            track.pan = pan
+            track.set_info_value('D_PAN', pan)
             update_arrange()
             pan_label = "左" if pan < -0.1 else ("右" if pan > 0.1 else "中")
             return format_success_response(
@@ -303,7 +303,10 @@ def register_track_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            track.mute = mute
+            if mute:
+                track.mute()
+            else:
+                track.unmute()
             update_arrange()
             status = "静音" if mute else "取消静音"
             return format_success_response(message=f"成功{status}音轨「{track_name}」。")
@@ -332,7 +335,8 @@ def register_track_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            track.solo = solo
+            from reapy import reascript_api as reaper
+            reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', int(solo))
             update_arrange()
             status = "独奏" if solo else "取消独奏"
             return format_success_response(message=f"成功{status}音轨「{track_name}」。")
@@ -361,7 +365,8 @@ def register_track_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            track.rec_arm = rec_arm
+            from reapy import reascript_api as reaper
+            reaper.SetMediaTrackInfo_Value(track, 'I_RECARM', int(rec_arm))
             update_arrange()
             status = "启用录音准备" if rec_arm else "禁用录音准备"
             return format_success_response(message=f"成功{status}音轨「{track_name}」。")
@@ -391,11 +396,11 @@ def register_track_tools(mcp: FastMCP):
         try:
             return format_success_response(data={
                 "name": track.name,
-                "volume": track.volume,
-                "pan": track.pan,
-                "mute": track.mute,
-                "solo": track.solo,
-                "rec_arm": track.rec_arm,
+                "volume": track.get_info_value('D_VOL'),
+                "pan": track.get_info_value('D_PAN'),
+                "mute": bool(track.get_info_value('B_MUTE')),
+                "solo": bool(track.get_info_value('I_SOLO')),
+                "rec_arm": bool(track.get_info_value('I_RECARM')),
                 "num_items": len(track.items),
                 "num_fx": len(track.fxs)
             })

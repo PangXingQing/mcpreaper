@@ -100,7 +100,7 @@ def register_audio_tools(mcp: FastMCP):
         try:
             from reapy import reascript_api as reaper
             item = track.items[item_index]
-            item.select()
+            reaper.SetMediaItemSelected(item, True)
             reaper.Main_OnCommand(41131, 0)
             update_arrange()
             return format_success_response(message=f"成功归一化音频项目项到{target_db}dB。")
@@ -194,13 +194,20 @@ def register_audio_tools(mcp: FastMCP):
         try:
             from reapy import reascript_api as reaper
             item = track.items[item_index]
-            current_length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+            # Use reapy item.length which returns correct value
+            current_length = item.length
+            if current_length <= 0:
+                raise OperationFailedError("拉伸音频", "音频项目项长度为0，无法拉伸")
             stretch_factor = new_length / current_length
-            reaper.SetMediaItemInfo_Value(item, "D_LENGTH", new_length)
-            reaper.SetMediaItemInfo_Value(item, "D_STRETCH", stretch_factor)
+            # Set stretch rate via take playrate to preserve audio quality
+            take = item.takes[0]
+            # Use raw pointers (item.id, take.id) for API calls that fail with reapy objects
+            playrate = float(current_length) / float(new_length)
+            reaper.SetMediaItemTakeInfo_Value(take.id, "D_PLAYRATE", playrate)
+            reaper.SetMediaItemInfo_Value(item.id, "D_LENGTH", new_length)
             update_arrange()
             
-            speed_percent = (1 / stretch_factor) * 100
+            speed_percent = playrate * 100
             return format_success_response(
                 message=f"成功拉伸音频项目项到{new_length}秒（原时长{current_length:.2f}秒，速度变化{speed_percent:.1f}%）。"
             )
@@ -344,7 +351,7 @@ def register_audio_tools(mcp: FastMCP):
         try:
             from reapy import reascript_api as reaper
             item = track.items[item_index]
-            item.select()
+            reaper.SetMediaItemSelected(item, True)
             reaper.Main_OnCommand(41305, 0)
             update_arrange()
             return format_success_response(message=f"成功移除音频静音部分（阈值：{threshold_db}dB）。")
@@ -443,7 +450,7 @@ def register_audio_tools(mcp: FastMCP):
         try:
             from reapy import reascript_api as reaper
             item = track.items[item_index]
-            item.select()
+            reaper.SetMediaItemSelected(item, True)
             
             action_map = {
                 "Compressor": 41062,

@@ -45,15 +45,12 @@ def register_send_tools(mcp: FastMCP):
             raise TrackNotFoundError(destination_track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            send_idx = reaper.CreateTrackSend(source_track, dest_track)
-            if send_idx >= 0:
-                update_arrange()
-                return format_success_response(
-                    message=f"成功在音轨「{source_track_name}」和「{destination_track_name}」之间创建发送（索引：{send_idx}）。"
-                )
-            else:
-                raise OperationFailedError("创建发送", "无法创建发送，请检查音轨状态")
+            # Use reapy's add_send method which properly creates sends
+            source_track.add_send(dest_track)
+            update_arrange()
+            return format_success_response(
+                message=f"成功在音轨「{source_track_name}」和「{destination_track_name}」之间创建发送。"
+            )
         except OperationFailedError:
             raise
         except Exception as e:
@@ -85,14 +82,14 @@ def register_send_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_sends = reaper.GetTrackNumSends(track, 0)
+            num_sends = len(list(track.sends))
             if send_index >= num_sends:
                 raise InvalidParameterError(
                     "send_index", send_index,
                     f"有效值范围：[0, {num_sends-1}]，该音轨共有{num_sends}个发送"
                 )
             
-            reaper.RemoveTrackSend(track, 0, send_index)
+            track.sends[send_index].delete()
             update_arrange()
             return format_success_response(message=f"成功删除音轨「{track_name}」的第{send_index}个发送。")
         except InvalidParameterError:
@@ -121,20 +118,13 @@ def register_send_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             sends = []
-            num_sends = reaper.GetTrackNumSends(track, 0)
-            
-            for i in range(num_sends):
-                dest_track = reaper.GetTrackSendInfo_Value(track, 0, i, "P_DESTTRACK")
-                retval, dest_name = reaper.GetTrackName(dest_track, "", 256)
-                send_vol = reaper.GetTrackSendInfo_Value(track, 0, i, "D_VOL")
-                send_pan = reaper.GetTrackSendInfo_Value(track, 0, i, "D_PAN")
+            for i, send in enumerate(track.sends):
                 sends.append({
                     "index": i,
-                    "destination_track": dest_name,
-                    "volume": send_vol,
-                    "pan": send_pan
+                    "destination_track": send.dest_track.name,
+                    "volume": send.volume,
+                    "pan": send.pan
                 })
             
             return format_success_response(data={"sends": sends, "count": len(sends)})
@@ -171,14 +161,14 @@ def register_send_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_sends = reaper.GetTrackNumSends(track, 0)
+            num_sends = len(list(track.sends))
             if send_index >= num_sends:
                 raise InvalidParameterError(
                     "send_index", send_index,
                     f"有效值范围：[0, {num_sends-1}]，该音轨共有{num_sends}个发送"
                 )
             
-            reaper.SetTrackSendInfo_Value(track, 0, send_index, "D_VOL", volume)
+            track.sends[send_index].volume = volume
             update_arrange()
             
             db_value = 20 * (volume ** (1/10)) if volume > 0 else "-inf"
@@ -218,14 +208,14 @@ def register_send_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_sends = reaper.GetTrackNumSends(track, 0)
+            num_sends = len(list(track.sends))
             if send_index >= num_sends:
                 raise InvalidParameterError(
                     "send_index", send_index,
                     f"有效值范围：[0, {num_sends-1}]，该音轨共有{num_sends}个发送"
                 )
             
-            reaper.SetTrackSendInfo_Value(track, 0, send_index, "D_PAN", pan)
+            track.sends[send_index].pan = pan
             update_arrange()
             
             pan_label = "左" if pan < -0.1 else ("右" if pan > 0.1 else "中")
@@ -256,20 +246,13 @@ def register_send_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             receives = []
-            num_receives = reaper.GetTrackNumSends(track, 1)
-            
-            for i in range(num_receives):
-                source_track = reaper.GetTrackSendInfo_Value(track, 1, i, "P_DESTTRACK")
-                retval, source_name = reaper.GetTrackName(source_track, "", 256)
-                receive_vol = reaper.GetTrackSendInfo_Value(track, 1, i, "D_VOL")
-                receive_pan = reaper.GetTrackSendInfo_Value(track, 1, i, "D_PAN")
+            for i, recv in enumerate(track.receives):
                 receives.append({
                     "index": i,
-                    "source_track": source_name,
-                    "volume": receive_vol,
-                    "pan": receive_pan
+                    "source_track": recv.source_track.name,
+                    "volume": recv.volume,
+                    "pan": recv.pan
                 })
             
             return format_success_response(data={"receives": receives, "count": len(receives)})

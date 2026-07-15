@@ -76,7 +76,7 @@ def register_film_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.SetToggleCommandState(40634, format_map[format_type])
+            reaper.SetToggleCommandState(40634, 0, format_map[format_type])
             reaper.Main_OnCommand(40634, 0)
             return format_success_response(message=f"成功设置时间码格式为：{format_type}")
         except Exception as e:
@@ -103,7 +103,7 @@ def register_film_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.GetSetProjectInfo_Value(project, "PROJECT_FPS", frame_rate, True)
+            reaper.GetSetProjectInfo(project, "PROJECT_FPS", frame_rate, True)
             return format_success_response(message=f"成功设置项目帧率为：{frame_rate}fps")
         except Exception as e:
             raise OperationFailedError("设置项目帧率", str(e))
@@ -175,7 +175,7 @@ def register_film_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.GetSetProjectInfo_Value(project, "PROJECT_SYNC_MODE", mode_map[mode], True)
+            reaper.GetSetProjectInfo(project, "PROJECT_SYNC_MODE", mode_map[mode], True)
             return format_success_response(message=f"成功设置同步参考模式为：{mode}")
         except Exception as e:
             raise OperationFailedError("设置同步参考模式", str(e))
@@ -219,7 +219,7 @@ def register_film_tools(mcp: FastMCP):
             else:
                 missing_tracks.append(track_name)
         
-        reaper.GetSetProjectInfo_Int(project, "RENDER_STEMSFLAG", 1, True)
+        reaper.GetSetProjectInfo(project, "RENDER_STEMSFLAG", 1, True)
         
         format_map = {"wav": 0, "mp3": 1, "flac": 2, "ogg": 3}
         if format not in format_map:
@@ -228,7 +228,7 @@ def register_film_tools(mcp: FastMCP):
                 f"可用格式：{list(format_map.keys())}"
             )
         
-        reaper.GetSetProjectInfo_Int(project, "RENDER_FORMAT", format_map[format], True)
+        reaper.GetSetProjectInfo(project, "RENDER_FORMAT", format_map[format], True)
         reaper.GetSetProjectInfo_String(project, "RENDER_FILE", output_dir + os.sep, True)
         reaper.Main_OnCommand(41893, 0)
         
@@ -278,7 +278,7 @@ def register_film_tools(mcp: FastMCP):
                 "可用类型：all, tracks, folders, selected"
             )
         
-        reaper.GetSetProjectInfo_Int(project, "RENDER_STEMSFLAG", stem_flags[stem_type], True)
+        reaper.GetSetProjectInfo(project, "RENDER_STEMSFLAG", stem_flags[stem_type], True)
         reaper.GetSetProjectInfo_String(project, "RENDER_FILE", output_dir + os.sep, True)
         reaper.Main_OnCommand(41893, 0)
         
@@ -389,9 +389,11 @@ def register_film_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            retval, video_file = reaper.GetSetProjectInfo_String(project, "PROJECT_VIDEO_FILE", "", False)
-            frame_rate = reaper.GetSetProjectInfo_Value(project, "PROJECT_FPS", 0, False)
-            retval2, timecode_start = reaper.GetSetProjectInfo_String(project, "PROJECT_TIMECODE_START", "", False)
+            result1 = reaper.GetSetProjectInfo_String(project, "PROJECT_VIDEO_FILE", "", False)
+            video_file = result1[3] if len(result1) > 3 else ""
+            frame_rate = reaper.GetSetProjectInfo(project, "PROJECT_FPS", 0, False)
+            result2 = reaper.GetSetProjectInfo_String(project, "PROJECT_TIMECODE_START", "", False)
+            timecode_start = result2[3] if len(result2) > 3 else ""
             
             return format_success_response(data={
                 "video_file": video_file if video_file else "未导入视频",
@@ -403,13 +405,13 @@ def register_film_tools(mcp: FastMCP):
 
     @mcp.tool()
     @reaper_tool_error_handler
-    def reaper_insert_cue_marker(time: float = 0.0, name: str = "", color: int = 0) -> dict:
+    def reaper_insert_cue_marker(time: float = 0.0, cue_name: str = "", color: int = 0) -> dict:
         """
         在时间轴上插入提示标记（用于同步）。
         
         Args:
             time: 时间位置（秒，>= 0）
-            name: 标记名称
+            cue_name: 标记名称
             color: 颜色索引（0-15）
         
         Returns:
@@ -426,9 +428,9 @@ def register_film_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.AddProjectMarker(project, False, time, 0, name, -1, color)
+            reaper.AddProjectMarker(project, False, time, 0, cue_name, -1)
             update_arrange()
-            return format_success_response(message=f"成功在{time}秒处插入提示标记「{name}」。")
+            return format_success_response(message=f"成功在{time}秒处插入提示标记「{cue_name}」。")
         except Exception as e:
             raise OperationFailedError("插入提示标记", str(e))
 

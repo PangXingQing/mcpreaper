@@ -206,7 +206,7 @@ def register_project_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            reaper.SetTempoTimeSigMarker(0, 0, 0, numerator, denominator, 0, 0, "")
+            reaper.SetTempoTimeSigMarker(project, -1, 0, numerator, denominator, 0, 0, 0, 0)
             return format_success_response(message=f"成功设置项目拍号为{numerator}/{denominator}。")
         except Exception as e:
             raise OperationFailedError("设置拍号", str(e))
@@ -270,13 +270,12 @@ def register_project_tools(mcp: FastMCP):
                 raise OperationFailedError("计算归一化", "该音轨没有项目项")
             
             take = items[0].takes[0]
-            retval, peak, rms = reaper.CalculateNormalization(take, 0, 0, -18, 0, 0)
+            normalize_level = reaper.CalculateNormalization(take, 0, 0, -18, 0)
             
             return format_success_response(data={
                 "track_name": track_name,
-                "peak_level_db": peak,
-                "rms_level_db": rms,
-                "gain_to_normalize_db": -18 - rms if rms < -18 else 0
+                "normalization_level": normalize_level,
+                "description": f"归一化到-18dB的建议增益"
             })
         except OperationFailedError:
             raise

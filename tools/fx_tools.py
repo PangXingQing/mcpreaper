@@ -37,16 +37,10 @@ def register_fx_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            fx_index = reaper.TrackFX_AddByName(track, fx_name, False, -1)
-            if fx_index >= 0:
-                update_arrange()
-                return format_success_response(message=f"成功为音轨「{track_name}」添加FX插件「{fx_name}」。")
-            else:
-                raise OperationFailedError(
-                    "添加FX插件",
-                    f"插件名称不正确或插件不存在：{fx_name}\n提示：请确保插件名称与Reaper中显示的完全一致"
-                )
+            track.add_fx(fx_name)
+            # add_fx returns an FX object on success, raises on failure
+            update_arrange()
+            return format_success_response(message=f"成功为音轨「{track_name}」添加FX插件「{fx_name}」。")
         except OperationFailedError:
             raise
         except Exception as e:
@@ -78,14 +72,14 @@ def register_fx_tools(mcp: FastMCP):
         
         try:
             from reapy import reascript_api as reaper
-            num_fx = reaper.TrackFX_GetCount(track)
+            num_fx = len(track.fxs)
             if fx_index >= num_fx:
                 raise InvalidParameterError(
                     "fx_index", fx_index,
                     f"有效值范围：[0, {num_fx-1}]，该音轨共有{num_fx}个FX插件"
                 )
             
-            retval, fx_name = reaper.TrackFX_GetFXName(track, fx_index, "", 256)
+            fx_name = track.fxs[fx_index].name
             reaper.TrackFX_Delete(track, fx_index)
             update_arrange()
             return format_success_response(message=f"成功从音轨「{track_name}」移除FX插件「{fx_name}」。")
@@ -115,18 +109,13 @@ def register_fx_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
             fx_list = []
-            num_fx = reaper.TrackFX_GetCount(track)
-            for i in range(num_fx):
-                retval, fx_name = reaper.TrackFX_GetFXName(track, i, "", 256)
-                enabled = bool(reaper.TrackFX_GetEnabled(track, i))
-                num_params = reaper.TrackFX_GetNumParams(track, i)
+            for i, fx in enumerate(track.fxs):
                 fx_list.append({
                     "index": i,
-                    "name": fx_name,
-                    "enabled": enabled,
-                    "num_params": num_params
+                    "name": fx.name,
+                    "enabled": fx.is_enabled,
+                    "num_params": fx.n_params
                 })
             return format_success_response(data={"fx_list": fx_list, "count": len(fx_list)})
         except Exception as e:
@@ -157,21 +146,19 @@ def register_fx_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            num_fx = reaper.TrackFX_GetCount(track)
+            num_fx = len(track.fxs)
             if fx_index >= num_fx:
                 raise InvalidParameterError(
                     "fx_index", fx_index,
                     f"有效值范围：[0, {num_fx-1}]，该音轨共有{num_fx}个FX插件"
                 )
             
-            current_state = reaper.TrackFX_GetEnabled(track, fx_index)
-            reaper.TrackFX_SetEnabled(track, fx_index, not current_state)
+            fx = track.fxs[fx_index]
+            fx.is_enabled = not fx.is_enabled
             update_arrange()
             
-            retval, fx_name = reaper.TrackFX_GetFXName(track, fx_index, "", 256)
-            status = "启用" if not current_state else "禁用"
-            return format_success_response(message=f"成功{status}FX插件「{fx_name}」。")
+            status = "启用" if fx.is_enabled else "禁用"
+            return format_success_response(message=f"成功{status}FX插件「{fx.name}」。")
         except InvalidParameterError:
             raise
         except Exception as e:
@@ -210,27 +197,24 @@ def register_fx_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            num_fx = reaper.TrackFX_GetCount(track)
+            num_fx = len(track.fxs)
             if fx_index >= num_fx:
                 raise InvalidParameterError(
                     "fx_index", fx_index,
                     f"有效值范围：[0, {num_fx-1}]，该音轨共有{num_fx}个FX插件"
                 )
             
-            num_params = reaper.TrackFX_GetNumParams(track, fx_index)
-            if param_index >= num_params:
+            fx = track.fxs[fx_index]
+            if param_index >= fx.n_params:
                 raise InvalidParameterError(
                     "param_index", param_index,
-                    f"有效值范围：[0, {num_params-1}]，该FX插件共有{num_params}个参数"
+                    f"有效值范围：[0, {fx.n_params-1}]，该FX插件共有{fx.n_params}个参数"
                 )
             
-            reaper.TrackFX_SetParamNormalized(track, fx_index, param_index, value)
+            fx.params[param_index] = value
             update_arrange()
             
-            retval, fx_name = reaper.TrackFX_GetFXName(track, fx_index, "", 256)
-            retval2, param_name = reaper.TrackFX_GetParamName(track, fx_index, param_index, "", 256)
-            return format_success_response(message=f"成功设置FX「{fx_name}」参数「{param_name}」为{value}。")
+            return format_success_response(message=f"成功设置FX「{fx.name}」参数{param_index}为{value}。")
         except InvalidParameterError:
             raise
         except Exception as e:
@@ -261,30 +245,24 @@ def register_fx_tools(mcp: FastMCP):
             raise TrackNotFoundError(track_name, available_tracks)
         
         try:
-            from reapy import reascript_api as reaper
-            num_fx = reaper.TrackFX_GetCount(track)
+            num_fx = len(track.fxs)
             if fx_index >= num_fx:
                 raise InvalidParameterError(
                     "fx_index", fx_index,
                     f"有效值范围：[0, {num_fx-1}]，该音轨共有{num_fx}个FX插件"
                 )
             
+            fx = track.fxs[fx_index]
             params = []
-            num_params = reaper.TrackFX_GetNumParams(track, fx_index)
-            retval, fx_name = reaper.TrackFX_GetFXName(track, fx_index, "", 256)
-            
-            for i in range(num_params):
-                retval2, param_name = reaper.TrackFX_GetParamName(track, fx_index, i, "", 256)
-                param_value = reaper.TrackFX_GetParamNormalized(track, fx_index, i)
-                retval3, param_label = reaper.TrackFX_GetParamLabel(track, fx_index, i, "", 256)
+            for i in range(fx.n_params):
                 params.append({
                     "index": i,
-                    "name": param_name,
-                    "value": param_value,
-                    "label": param_label
+                    "name": fx.params[i].name,
+                    "value": fx.params[i].normalized,
+                    "formatted": fx.params[i].formatted
                 })
             
-            return format_success_response(data={"fx_name": fx_name, "params": params, "num_params": num_params})
+            return format_success_response(data={"fx_name": fx.name, "params": params, "num_params": fx.n_params})
         except InvalidParameterError:
             raise
         except Exception as e:
