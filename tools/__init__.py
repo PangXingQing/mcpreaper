@@ -13,6 +13,9 @@ from .audio_tools import register_audio_tools
 from .eq_tools import register_eq_tools
 from .film_tools import register_film_tools
 from .generate_tools import register_generate_tools
+from .take_tools import register_take_tools
+from .time_selection_tools import register_time_tools
+from .metronome_tools import register_metronome_tools
 
 __all__ = [
     "register_track_tools",
@@ -29,5 +32,8 @@ __all__ = [
     "register_audio_tools",
     "register_eq_tools",
     "register_film_tools",
-    "register_generate_tools"
+    "register_generate_tools",
+    "register_take_tools",
+    "register_time_tools",
+    "register_metronome_tools",
 ]

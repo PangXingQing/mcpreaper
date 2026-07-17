@@ -15,6 +15,7 @@ htmlcov/
 
 # IDE - personal settings
 .idea/
+.vscode/
 *.swp
 *.swo
 *~

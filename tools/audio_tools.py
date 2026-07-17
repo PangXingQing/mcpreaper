@@ -474,3 +474,155 @@ def register_audio_tools(mcp: FastMCP):
             raise
         except Exception as e:
             raise OperationFailedError("应用音频处理", str(e))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_get_audio_item_info(track_name: str = "", item_index: int = 0) -> dict:
+        """
+        获取音频 Item 的详细信息。
+
+        包括源文件路径、采样率、长度、增益、淡入淡出等。
+
+        Args:
+            track_name: 音轨名称
+            item_index: Item 索引
+
+        Returns:
+            Item 详细信息
+        """
+        if not track_name:
+            raise InvalidParameterError("track_name", track_name, "请提供有效的音轨名称")
+
+        track = get_track_by_name(track_name)
+        if track is None:
+            avail = get_available_track_names()
+            raise TrackNotFoundError(track_name, avail)
+
+        try:
+            from reapy import reascript_api as reaper
+
+            item_count = reaper.CountTrackMediaItems(track)
+            if item_index < 0 or item_index >= item_count:
+                raise InvalidParameterError(
+                    "item_index", item_index,
+                    f"有效范围：[0, {item_count - 1}]"
+                )
+
+            item = reaper.GetTrackMediaItem(track, item_index)
+            take = reaper.GetMediaItemTake(item, 0)
+
+            position = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+            length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+            fade_in = reaper.GetMediaItemInfo_Value(item, "D_FADEINLEN")
+            fade_out = reaper.GetMediaItemInfo_Value(item, "D_FADEOUTLEN")
+            volume = reaper.GetMediaItemInfo_Value(item, "D_VOL")
+            muted = bool(reaper.GetMediaItemInfo_Value(item, "B_MUTE"))
+
+            # 源文件信息
+            source_info = {}
+            if take:
+                try:
+                    source = reaper.GetMediaItemTake_Source(take)
+                    if source:
+                        src_type = reaper.GetMediaSourceType(source, "", 256)
+                        source_info["type"] = str(src_type)
+                except Exception:
+                    pass
+
+                try:
+                    src_length = reaper.GetMediaSourceLength(source)[1]
+                    source_info["source_length"] = round(src_length, 3)
+                except Exception:
+                    pass
+
+            is_midi = reaper.TakeIsMIDI(take) if take else False
+
+            return format_success_response(data={
+                "track_name": track_name,
+                "item_index": item_index,
+                "position": round(position, 3),
+                "length": round(length, 3),
+                "end_position": round(position + length, 3),
+                "fade_in_length": round(fade_in, 4),
+                "fade_out_length": round(fade_out, 4),
+                "volume_linear": round(volume, 2),
+                "muted": muted,
+                "is_midi": bool(is_midi),
+                "source": source_info,
+            })
+        except (TrackNotFoundError, InvalidParameterError):
+            raise
+        except Exception as e:
+            raise OperationFailedError("获取音频 Item 信息", str(e))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_reverse_audio_item(track_name: str = "", item_index: int = 0) -> dict:
+        """
+        反转音频 Item（倒放）。
+
+        Args:
+            track_name: 音轨名称
+            item_index: Item 索引
+
+        Returns:
+            操作结果
+        """
+        if not track_name:
+            raise InvalidParameterError("track_name", track_name, "请提供有效的音轨名称")
+
+        track = get_track_by_name(track_name)
+        if track is None:
+            avail = get_available_track_names()
+            raise TrackNotFoundError(track_name, avail)
+
+        for _i, item in enumerate(track.items):
+            if _i == item_index:
+                item.select()
+                break
+
+        try:
+            from reapy import reascript_api as reaper
+            reaper.Main_OnCommand(40289, 0)  # Item: Reverse items to new take
+            return format_success_response(
+                message=f"已反转音轨「{track_name}」的 Item[{item_index}]"
+            )
+        except Exception as e:
+            raise OperationFailedError("反转音频", str(e))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_glue_items(track_name: str = "") -> dict:
+        """
+        粘合音轨上所有选中的 Item。
+
+        将多条 Item 合并为一条，非破坏性渲染。
+
+        Args:
+            track_name: 音轨名称
+
+        Returns:
+            操作结果
+        """
+        if not track_name:
+            raise InvalidParameterError("track_name", track_name, "请提供有效的音轨名称")
+
+        track = get_track_by_name(track_name)
+        if track is None:
+            avail = get_available_track_names()
+            raise TrackNotFoundError(track_name, avail)
+
+        try:
+            from reapy import reascript_api as reaper
+            # 选择所有 Item
+            item_count = reaper.CountTrackMediaItems(track)
+            for i in range(item_count):
+                item = reaper.GetTrackMediaItem(track, i)
+                reaper.SetMediaItemInfo_Value(item, "B_UISEL", 1)
+
+            reaper.Main_OnCommand(40362, 0)  # Item: Glue items
+            return format_success_response(
+                message=f"已粘合音轨「{track_name}」上的所有 Item"
+            )
+        except Exception as e:
+            raise OperationFailedError("粘合 Item", str(e))

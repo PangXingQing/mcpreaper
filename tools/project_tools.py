@@ -248,30 +248,33 @@ def register_project_tools(mcp: FastMCP):
     def reaper_calculate_normalization(track_name: str = "") -> dict:
         """
         计算音轨归一化增益。
-        
+
+        分析指定轨道的第一个媒体项，计算归一化到目标电平所需的增益量。
+        返回建议增益值，可用于后续调整轨道音量。
+
         Args:
             track_name: 音轨名称
-        
+
         Returns:
             归一化信息字典，包含success字段和峰值、RMS、增益数据
         """
         if not track_name:
             raise InvalidParameterError("track_name", track_name, "请提供有效的音轨名称")
-        
+
         track = get_track_by_name(track_name)
         if track is None:
             available_tracks = get_available_track_names()
             raise TrackNotFoundError(track_name, available_tracks)
-        
+
         try:
             from reapy import reascript_api as reaper
             items = list(track.items)
             if not items:
                 raise OperationFailedError("计算归一化", "该音轨没有项目项")
-            
+
             take = items[0].takes[0]
             normalize_level = reaper.CalculateNormalization(take, 0, 0, -18, 0)
-            
+
             return format_success_response(data={
                 "track_name": track_name,
                 "normalization_level": normalize_level,
@@ -281,3 +284,143 @@ def register_project_tools(mcp: FastMCP):
             raise
         except Exception as e:
             raise OperationFailedError("计算归一化", str(e))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_get_project_report() -> dict:
+        """
+        生成当前工程的完整诊断报告。
+
+        报告包含：
+        - BPM、拍号、采样率
+        - 每条轨道的详细信息（音量、声像、FX数量、MIDI音符数等）
+        - 标记和区域统计
+        - 性能警告和优化建议
+
+        Returns:
+            结构化工程报告
+        """
+        from utils.project_reporter import generate_project_report
+        report = generate_project_report()
+        if report["success"]:
+            return format_success_response(
+                data=report,
+                message=f"工程报告已生成：{report['track_count']} 条轨道，{report['total_midi_notes']} 个MIDI音符",
+            )
+        else:
+            raise OperationFailedError("生成工程报告", report.get("error", "未知错误"))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_get_connection_health() -> dict:
+        """
+        检查 REAPER 连接健康状态。
+
+        Returns:
+            连接延迟、工程名称、轨道数等健康信息
+        """
+        from utils import health_check, get_connection_status
+        hc = health_check()
+        status = get_connection_status()
+        return format_success_response(data={
+            "healthy": hc["healthy"],
+            "latency_ms": hc["latency_ms"],
+            "project_name": hc.get("project_name", ""),
+            "track_count": hc.get("track_count", 0),
+            "connection": status,
+        })
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_refresh_project_cache() -> dict:
+        """
+        刷新 REAPER 工程缓存。
+
+        当 REAPER 外部操作（如手动添加轨道）导致缓存过期时使用。
+        强制重新连接并获取最新工程状态。
+
+        Returns:
+            刷新后的工程信息
+        """
+        from utils import invalidate_cache, get_project
+        invalidate_cache()
+        ok, msg, proj = get_project(force_refresh=True)
+        if ok:
+            return format_success_response(
+                message=f"缓存已刷新：{msg}",
+                data={
+                    "project_name": proj.name if proj else "",
+                    "track_count": len(proj.tracks) if proj else 0,
+                },
+            )
+        else:
+            raise OperationFailedError("刷新缓存", msg)
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_undo_block_start(block_name: str = "") -> dict:
+        """
+        开始一个可撤销的操作块。
+
+        之后的操作会被组合成一个可撤销块。
+        调用 reaper_undo_block_end 结束该块。
+
+        Args:
+            block_name: 操作块的描述名称（在撤销菜单中可见）
+
+        Returns:
+            操作结果
+        """
+        try:
+            from reapy import reascript_api as reaper
+            reaper.Undo_BeginBlock2(0)
+            return format_success_response(
+                message=f"已开始撤销块「{block_name}」" if block_name else "已开始撤销块",
+                data={"block_name": block_name},
+            )
+        except Exception as e:
+            raise OperationFailedError("开始撤销块", str(e))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_undo_block_end(block_name: str = "MCP操作") -> dict:
+        """
+        结束当前可撤销的操作块。
+
+        Args:
+            block_name: 与 reaper_undo_block_start 对应的块名称
+
+        Returns:
+            操作结果
+        """
+        try:
+            from reapy import reascript_api as reaper
+            reaper.Undo_EndBlock2(0, block_name, 0)
+            return format_success_response(
+                message=f"已结束撤销块「{block_name}」（可在 REAPER 中 Ctrl+Z 撤销）",
+            )
+        except Exception as e:
+            raise OperationFailedError("结束撤销块", str(e))
+
+    @mcp.tool()
+    @reaper_tool_error_handler
+    def reaper_get_project_length() -> dict:
+        """
+        获取工程总时长。
+
+        Returns:
+            工程时长（秒和分钟）
+        """
+        success, message, project = ensure_project_ready()
+        if not success:
+            raise OperationFailedError("连接REAPER", message)
+
+        try:
+            length = project.length
+            return format_success_response(data={
+                "length_seconds": round(length, 3),
+                "length_minutes": round(length / 60, 1),
+                "length_bars_approx": round(length * project.bpm / 240, 1),
+            })
+        except Exception as e:
+            raise OperationFailedError("获取工程时长", str(e))

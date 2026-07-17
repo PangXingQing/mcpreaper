@@ -1,45 +1,158 @@
-from .reaper_client import ensure_project_ready, get_track_by_name, update_arrange
+"""
+MCPReaper 工具包。
+
+提供 REAPER DAW 的 MCP 协议接口、错误处理、音频分析等功能。
+"""
+from .reaper_client import (
+    ensure_project_ready,
+    get_project,
+    get_track_by_name,
+    get_track_by_index,
+    update_arrange,
+    health_check,
+    get_connection_status,
+    invalidate_cache,
+)
 from .error_handler import (
     ReaperError,
     ReaperConnectionError,
+    ReaperTimeoutError,
     TrackNotFoundError,
     ItemNotFoundError,
     FXNotFoundError,
+    MIDIItemNotFoundError,
+    MarkerNotFoundError,
+    SendNotFoundError,
     InvalidParameterError,
     ReaperFileNotFoundError,
     OperationFailedError,
+    RenderError,
+    ProjectStateError,
     format_error_response,
     format_success_response,
+    format_warning_response,
     reaper_tool_error_handler,
-    get_available_track_names
+    retry_on_failure,
+    validate_parameter,
+    get_available_track_names,
+    get_friendly_error_message,
+)
+from .audio_analysis import (
+    get_wav_info,
+    get_audio_format_name,
+    calculate_rms,
+    calculate_peak,
+    analyze_audio_levels,
+    detect_silence,
+    batch_analyze_directory,
+    get_audio_library_stats,
+)
+from .midi_helpers import (
+    NOTE_NAMES,
+    PITCH_RANGE,
+    midi_note_to_name,
+    name_to_midi_note,
+    GM_INSTRUMENT_CATEGORIES,
+    GM_DRUM_NOTES,
+    get_gm_instrument_name,
+    get_gm_category,
+    search_gm_instruments,
+    get_drum_name,
+    SCALE_INTERVALS,
+    CHORD_INTERVALS,
+    get_scale_notes,
+    get_chord_notes,
+    transpose_notes,
+    clamp_velocity,
+    PPQ_DEFAULT,
+    beat_to_ppq,
+    bar_to_ppq,
+    ppq_to_seconds,
+    seconds_to_ppq,
+    note_duration_ppq,
+)
+from .project_reporter import (
+    generate_project_report,
+    estimate_cpu_load,
+    TrackStats,
+    ProjectReport,
 )
 
-def get_track_item_count(track):
-    """Get track item count using reascript directly (bypasses reapy cache)."""
-    from reapy import reascript_api as reaper
-    return reaper.CountTrackMediaItems(track)
-
-def get_track_item(track, item_index):
-    """Get track item using reascript directly (bypasses reapy cache)."""
-    from reapy import reascript_api as reaper
-    return reaper.GetTrackMediaItem(track, item_index)
+try:
+    from ._version import __version__
+except ImportError:
+    __version__ = "2.0.0"
 
 __all__ = [
+    # reaper_client
     "ensure_project_ready",
+    "get_project",
     "get_track_by_name",
+    "get_track_by_index",
     "update_arrange",
-    "get_track_item_count",
-    "get_track_item",
+    "health_check",
+    "get_connection_status",
+    "invalidate_cache",
+    # error_handler
     "ReaperError",
     "ReaperConnectionError",
+    "ReaperTimeoutError",
     "TrackNotFoundError",
     "ItemNotFoundError",
     "FXNotFoundError",
+    "MIDIItemNotFoundError",
+    "MarkerNotFoundError",
+    "SendNotFoundError",
     "InvalidParameterError",
     "ReaperFileNotFoundError",
     "OperationFailedError",
+    "RenderError",
+    "ProjectStateError",
     "format_error_response",
     "format_success_response",
+    "format_warning_response",
     "reaper_tool_error_handler",
-    "get_available_track_names"
+    "retry_on_failure",
+    "validate_parameter",
+    "get_available_track_names",
+    "get_friendly_error_message",
+    # audio_analysis
+    "get_wav_info",
+    "get_audio_format_name",
+    "calculate_rms",
+    "calculate_peak",
+    "analyze_audio_levels",
+    "detect_silence",
+    "batch_analyze_directory",
+    "get_audio_library_stats",
+    # midi_helpers
+    "NOTE_NAMES",
+    "PITCH_RANGE",
+    "midi_note_to_name",
+    "name_to_midi_note",
+    "GM_INSTRUMENT_CATEGORIES",
+    "GM_DRUM_NOTES",
+    "get_gm_instrument_name",
+    "get_gm_category",
+    "search_gm_instruments",
+    "get_drum_name",
+    "SCALE_INTERVALS",
+    "CHORD_INTERVALS",
+    "get_scale_notes",
+    "get_chord_notes",
+    "transpose_notes",
+    "clamp_velocity",
+    "PPQ_DEFAULT",
+    "beat_to_ppq",
+    "bar_to_ppq",
+    "ppq_to_seconds",
+    "seconds_to_ppq",
+    "note_duration_ppq",
+    # project_reporter
+    "generate_project_report",
+    "estimate_cpu_load",
+    "TrackStats",
+    "ProjectReport",
+    # version
+    "__version__",
 ]

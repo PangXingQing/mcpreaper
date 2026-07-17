@@ -16,7 +16,10 @@ from tools import (
     register_audio_tools,
     register_eq_tools,
     register_film_tools,
-    register_generate_tools
+    register_generate_tools,
+    register_take_tools,
+    register_time_tools,
+    register_metronome_tools,
 )
 from utils import (
     reaper_tool_error_handler,
@@ -104,6 +107,9 @@ register_audio_tools(mcp)
 register_eq_tools(mcp)
 register_film_tools(mcp)
 register_generate_tools(mcp)
+register_take_tools(mcp)
+register_time_tools(mcp)
+register_metronome_tools(mcp)
 
 if __name__ == "__main__":
     mcp.run(transport='stdio')
